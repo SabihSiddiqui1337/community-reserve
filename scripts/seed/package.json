@@ -1,0 +1,16 @@
+{
+  "name": "amenry-seed",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Seed the Firebase emulator with a demo community for Amenry.",
+  "scripts": {
+    "seed": "tsx seed.ts"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "@types/node": "^20.17.0"
+  }
+}

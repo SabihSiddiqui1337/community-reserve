@@ -1,0 +1,144 @@
+rules_version = '2';
+
+// Multi-tenant isolation + role enforcement (PROJECT-BRIEF §10).
+// IMPORTANT: business-rule writes (reservations, no-show counts, bans, PINs)
+// go through Cloud Functions using the Admin SDK, which BYPASSES these rules.
+// So client rules are deliberately strict: read for members, direct writes
+// only where a client legitimately owns the data (its own user/membership doc).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid))
+             .data.globalRole == 'superAdmin';
+    }
+
+    // A membership doc proves the caller belongs to a tenant.
+    function membership(communityId) {
+      return get(/databases/$(database)/documents/communities/$(communityId)/memberships/$(request.auth.uid)).data;
+    }
+
+    function isMember(communityId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/communities/$(communityId)/memberships/$(request.auth.uid));
+    }
+
+    function isCommunityAdmin(communityId) {
+      return isMember(communityId) && membership(communityId).role == 'admin';
+    }
+
+    // ---- Global user profiles ----
+    match /users/{userId} {
+      allow read: if isSelf(userId) || isSuperAdmin();
+      allow create, update: if isSelf(userId);
+      allow delete: if false;
+    }
+
+    // ---- Public community directory (join-flow discovery) ----
+    // Minimal summary fields only; readable before joining. Seeded/admin-written.
+    match /communityDirectory/{communityId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // ---- Collection-group read of a user's OWN memberships ----
+    // The app queries collectionGroup('memberships') where userId == uid to
+    // find which communities the user belongs to. Collection-group queries only
+    // match rules with a recursive wildcard, so this is required (the nested
+    // per-community rule below still governs admin reads + all writes).
+    match /{path=**}/memberships/{memberId} {
+      allow read: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // ---- Tenants ----
+    match /communities/{communityId} {
+      // Members (and super admins) can read their community's branding/settings.
+      allow read: if isMember(communityId) || isSuperAdmin();
+      // Branding/settings edits happen via admin tooling; allow community admins.
+      allow write: if isCommunityAdmin(communityId) || isSuperAdmin();
+
+      // Memberships: a resident creates their own (join), reads their own, and
+      // may attach a residency doc (status -> pending only). Approvals and
+      // role/standing changes are admin-only. Read keys off the `userId` field
+      // so collection-group queries (a user's memberships) are allowed.
+      match /memberships/{userId} {
+        allow read: if (isSignedIn() && resource.data.userId == request.auth.uid)
+          || isCommunityAdmin(communityId) || isSuperAdmin();
+
+        allow create: if isSelf(userId)
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.role == 'resident'
+          && request.resource.data.residencyStatus == 'pending';
+
+        // Resident self-update is limited to submitting residency (never
+        // self-verifying, never changing role/standing).
+        allow update: if isCommunityAdmin(communityId) || isSuperAdmin()
+          || (isSelf(userId)
+              && request.resource.data.role == resource.data.role
+              && request.resource.data.residencyStatus == 'pending'
+              && request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['verificationDocUrl', 'unit', 'residencyStatus', 'userId']));
+
+        allow delete: if isCommunityAdmin(communityId) || isSuperAdmin();
+      }
+
+      match /amenities/{amenityId} {
+        allow read: if isMember(communityId) || isSuperAdmin();
+        allow write: if isCommunityAdmin(communityId) || isSuperAdmin();
+      }
+
+      // Reservations are created/mutated by Cloud Functions (Admin SDK).
+      // Clients may only READ their own or, for admins, all.
+      match /reservations/{reservationId} {
+        allow read: if isSignedIn() && (
+          resource.data.userId == request.auth.uid
+          || isCommunityAdmin(communityId) || isSuperAdmin()
+        );
+        // Created/mutated by Cloud Functions. Exception: a community admin may
+        // manually cancel/override status (PROJECT-BRIEF §7 admin calendar).
+        allow update: if isCommunityAdmin(communityId)
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'cancelledAt']);
+        allow create, delete: if false;
+      }
+
+      match /waitlist/{waitlistId} {
+        allow read: if isSignedIn() && (
+          resource.data.userId == request.auth.uid
+          || isCommunityAdmin(communityId) || isSuperAdmin()
+        );
+        allow write: if false; // server-only
+      }
+
+      match /payments/{paymentId} {
+        allow read: if isSignedIn() && (
+          resource.data.userId == request.auth.uid
+          || isCommunityAdmin(communityId) || isSuperAdmin()
+        );
+        allow write: if false; // server-only
+      }
+
+      match /notifications/{notificationId} {
+        allow read: if isSignedIn() && (
+          resource.data.userId == request.auth.uid
+          || isCommunityAdmin(communityId) || isSuperAdmin()
+        );
+        // Recipients may mark as read; creation is server-side.
+        allow update: if isSignedIn()
+          && resource.data.userId == request.auth.uid;
+        allow create, delete: if false;
+      }
+    }
+  }
+}

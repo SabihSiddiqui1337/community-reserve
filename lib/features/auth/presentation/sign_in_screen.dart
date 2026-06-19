@@ -1,0 +1,250 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../app/router/routes.dart';
+import '../../../core/widgets/branded_background.dart';
+import '../application/auth_controller.dart';
+
+class SignInScreen extends ConsumerStatefulWidget {
+  const SignInScreen({super.key});
+
+  @override
+  ConsumerState<SignInScreen> createState() => _SignInScreenState();
+}
+
+class _SignInScreenState extends ConsumerState<SignInScreen> {
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    await ref.read(authControllerProvider.notifier).signIn(
+          _email.text,
+          _password.text,
+        );
+  }
+
+  /// Autofill the credentials for a demo role. The user then taps Sign in.
+  void _fillDemo(_DemoAccount account) {
+    _email.text = account.email;
+    _password.text = _DemoAccount.password;
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(authControllerProvider);
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      body: BrandedBackground(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const BrandLogo(label: 'A', size: 72),
+                      const SizedBox(height: 24),
+                      Text('Welcome back',
+                          style: theme.textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      Text('Sign in to your community',
+                          style: theme.textTheme.bodyMedium),
+                      const SizedBox(height: 28),
+                      TextFormField(
+                        controller: _email,
+                        keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.email],
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          prefixIcon: Icon(Icons.mail_outline),
+                        ),
+                        validator: (v) =>
+                            (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _password,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Password',
+                          prefixIcon: Icon(Icons.lock_outline),
+                        ),
+                        validator: (v) =>
+                            (v == null || v.length < 6) ? 'Min 6 characters' : null,
+                      ),
+                      if (state.hasError) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _friendlyError(state.error!),
+                          style: TextStyle(color: theme.colorScheme.error),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      _DemoAccounts(
+                        busy: state.isLoading,
+                        onPick: _fillDemo,
+                      ),
+                      const SizedBox(height: 20),
+                      FilledButton(
+                        onPressed: state.isLoading ? null : _submit,
+                        child: state.isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Sign in'),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: () => context.go(Routes.signUp),
+                        child: const Text("New here? Create an account"),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.06),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _friendlyError(Object e) {
+  final s = e.toString();
+  if (s.contains('user-not-found') || s.contains('wrong-password') ||
+      s.contains('invalid-credential')) {
+    return 'Incorrect email or password.';
+  }
+  return 'Something went wrong. Please try again.';
+}
+
+/// A seeded demo account for one-tap login during QA.
+class _DemoAccount {
+  const _DemoAccount(this.label, this.email, this.sub, this.icon, this.color);
+  final String label;
+  final String email;
+  final String sub;
+  final IconData icon;
+  final Color color;
+
+  static const password = 'Password123!';
+}
+
+const _demoAccounts = <_DemoAccount>[
+  _DemoAccount('Admin', 'admin@maplegrove.test', 'Maple Grove · admin view',
+      Icons.shield_outlined, Color(0xFFC9A24A)),
+  _DemoAccount('Resident', 'alex@maplegrove.test', 'Maple Grove · verified',
+      Icons.person_outline, Color(0xFF2E9E78)),
+  _DemoAccount('Pending', 'sam@maplegrove.test', 'awaiting approval',
+      Icons.hourglass_top, Color(0xFFD9A036)),
+  _DemoAccount('Oakwood admin', 'admin@oakwood.test', '2nd tenant · admin',
+      Icons.apartment, Color(0xFF2E9E78)),
+];
+
+/// Tappable demo-account chips shown under the password field. Tapping one
+/// autofills the credentials and signs in, so QA can jump straight into each
+/// role/tenant view.
+class _DemoAccounts extends StatelessWidget {
+  const _DemoAccounts({required this.busy, required this.onPick});
+
+  final bool busy;
+  final void Function(_DemoAccount) onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.bolt, size: 16, color: theme.colorScheme.secondary),
+            const SizedBox(width: 6),
+            Text('Demo accounts — tap to fill, then Sign in',
+                style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _demoAccounts
+              .map((a) => _DemoChip(
+                    account: a,
+                    enabled: !busy,
+                    onTap: () => onPick(a),
+                  ))
+              .toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _DemoChip extends StatelessWidget {
+  const _DemoChip(
+      {required this.account, required this.enabled, required this.onTap});
+  final _DemoAccount account;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 14,
+                backgroundColor: account.color.withValues(alpha: 0.18),
+                child: Icon(account.icon, size: 16, color: account.color),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(account.label,
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600)),
+                  Text(account.sub,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// Cloud Storage holds residency-verification documents (PROJECT-BRIEF §1).
+// Path convention: communities/{communityId}/residency/{userId}/{file}
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    match /communities/{communityId}/residency/{userId}/{fileName} {
+      // A resident uploads & reads their own verification docs.
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Public branding assets (logos, backgrounds) — read-only to clients;
+    // writes happen via admin tooling / Functions.
+    match /communities/{communityId}/branding/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
