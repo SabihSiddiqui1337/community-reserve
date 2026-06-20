@@ -18,13 +18,14 @@ class Routes {
   static const myBookings = '/bookings';
   static const profile = '/profile';
 
-  // Book flow (within the Book branch)
+  // Book flow. Slots live in the Book branch (with tabs); checkout is a
+  // full-screen route (no tab bar), matching the reference.
   static const bookSlots = '/book/slots/:amenityId';
-  static const bookCheckout = '/book/checkout/:amenityId';
+  static const bookCheckout = '/checkout/:amenityId';
   static String bookSlotsTo(String amenityId) => '/book/slots/$amenityId';
   static String bookCheckoutTo(String amenityId,
           {required String start, required String end}) =>
-      '/book/checkout/$amenityId?start=${Uri.encodeComponent(start)}&end=${Uri.encodeComponent(end)}';
+      '/checkout/$amenityId?start=${Uri.encodeComponent(start)}&end=${Uri.encodeComponent(end)}';
 
   // Reservation detail (within the My Bookings branch)
   static const reservationDetail = '/bookings/reservation/:reservationId';

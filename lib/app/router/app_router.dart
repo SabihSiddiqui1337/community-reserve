@@ -108,16 +108,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                   builder: (_, state) =>
                       SlotScreen(amenityId: state.pathParameters['amenityId']!),
                 ),
-                GoRoute(
-                  path: 'checkout/:amenityId',
-                  builder: (_, state) => CheckoutScreen(
-                    amenityId: state.pathParameters['amenityId']!,
-                    start: DateTime.parse(state.uri.queryParameters['start']!)
-                        .toLocal(),
-                    end: DateTime.parse(state.uri.queryParameters['end']!)
-                        .toLocal(),
-                  ),
-                ),
               ],
             ),
           ]),
@@ -170,6 +160,16 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: Routes.profile, builder: (_, _) => const ProfileScreen()),
           ]),
         ],
+      ),
+
+      // Checkout — full screen (no bottom tab bar), matching the reference.
+      GoRoute(
+        path: Routes.bookCheckout,
+        builder: (_, state) => CheckoutScreen(
+          amenityId: state.pathParameters['amenityId']!,
+          start: DateTime.parse(state.uri.queryParameters['start']!).toLocal(),
+          end: DateTime.parse(state.uri.queryParameters['end']!).toLocal(),
+        ),
       ),
     ],
   );

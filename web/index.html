@@ -68,6 +68,12 @@
         s.async = true;
         document.body.appendChild(s);
       }
+      // Remove any old Flutter service worker so fresh builds always load.
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations()
+          .then(function (rs) { rs.forEach(function (r) { r.unregister(); }); })
+          .catch(function () {});
+      }
       try {
         var req = indexedDB.deleteDatabase('firebaseLocalStorageDb');
         req.onsuccess = boot;

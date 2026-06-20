@@ -174,7 +174,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             card: user?.selectedCard,
             busy: _busy,
             onReserve: () => _reserve(subtotal, total),
-            onApplePay: () => _reserve(subtotal, total),
+            onOtherPay: () => showModalBottomSheet<void>(
+              context: context,
+              builder: (sheetContext) => _OtherWaysToPaySheet(
+                onPay: () {
+                  Navigator.pop(sheetContext);
+                  _reserve(subtotal, total);
+                },
+              ),
+            ),
             onChange: () => showModalBottomSheet<void>(
               context: context,
               isScrollControlled: true,
@@ -218,6 +226,8 @@ class _CourtSelector extends StatelessWidget {
           DropdownButton<int?>(
             value: selected,
             underline: const SizedBox.shrink(),
+            focusColor: Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
             items: [
               const DropdownMenuItem(value: null, child: Text('Auto')),
               for (var c = 1; c <= capacity; c++)
@@ -293,14 +303,14 @@ class _PayBar extends StatelessWidget {
     required this.busy,
     required this.onReserve,
     required this.onChange,
-    required this.onApplePay,
+    required this.onOtherPay,
   });
   final int totalCents;
   final PaymentMethod? card;
   final bool busy;
   final VoidCallback onReserve;
   final VoidCallback onChange;
-  final VoidCallback onApplePay;
+  final VoidCallback onOtherPay;
 
   @override
   Widget build(BuildContext context) {
@@ -355,20 +365,75 @@ class _PayBar extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('Reserve'),
             ),
-            const SizedBox(height: 8),
-            // Apple Pay option (placeholder — uses the same stubbed flow).
+            const SizedBox(height: 4),
+            TextButton(
+              onPressed: busy ? null : onOtherPay,
+              child: const Text('Other ways to pay'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Sheet offering Apple Pay / Google Pay (placeholders — same stubbed flow).
+class _OtherWaysToPaySheet extends StatelessWidget {
+  const _OtherWaysToPaySheet({required this.onPay});
+  final VoidCallback onPay;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Text('Other ways to pay',
+                  style: theme.textTheme.titleLarge),
+            ),
+            const SizedBox(height: 20),
+            // Apple Pay
             SizedBox(
-              height: 48,
+              height: 52,
               child: FilledButton.icon(
-                onPressed: busy ? null : onApplePay,
+                onPressed: onPay,
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
                 ),
-                icon: const Icon(Icons.apple, size: 22),
+                icon: const Icon(Icons.apple, size: 24),
                 label: const Text('Pay',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600)),
               ),
+            ),
+            const SizedBox(height: 12),
+            // Google Pay
+            SizedBox(
+              height: 52,
+              child: FilledButton.icon(
+                onPressed: onPay,
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  side: const BorderSide(color: Color(0xFFDADCE0)),
+                ),
+                icon: const Icon(Icons.account_balance_wallet_outlined,
+                    size: 22),
+                label: const Text('Google Pay',
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: Text('Demo — no real charge is made.',
+                  style: theme.textTheme.bodySmall),
             ),
           ],
         ),
