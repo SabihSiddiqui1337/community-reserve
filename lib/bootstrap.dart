@@ -16,10 +16,16 @@ import 'firebase_options.dart';
 /// Host the emulators run on. `10.0.2.2` is the Android emulator's alias for
 /// the host machine's `localhost`; everything else uses `127.0.0.1` (the
 /// emulators bind to IPv4, and `localhost` can resolve to IPv6 `::1`).
-String get _emulatorHost =>
-    (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
-        ? '10.0.2.2'
-        : '127.0.0.1';
+///
+/// On a physical device, `127.0.0.1` points at the device itself, so pass the
+/// host machine's LAN IP via `--dart-define=EMULATOR_HOST=192.168.x.y`.
+String get _emulatorHost {
+  const override = String.fromEnvironment('EMULATOR_HOST');
+  if (override.isNotEmpty) return override;
+  return (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
+      ? '10.0.2.2'
+      : '127.0.0.1';
+}
 
 /// Whether to point at the Firebase Emulator Suite. Defaults to true for this
 /// demo build (so release web builds used for QA also use the emulators).
