@@ -3,11 +3,9 @@ import 'dart:async';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-import '../../../app/router/routes.dart';
 import '../../amenities/data/amenity_repository.dart';
 import '../../community/application/tenant_providers.dart';
 import '../data/reservation_repository.dart';
@@ -16,17 +14,26 @@ import '../domain/reservation.dart';
 /// PIN/QR become visible this many minutes before the reservation starts.
 const _pinLeadMinutes = 10;
 
-class ReservationDetailScreen extends ConsumerStatefulWidget {
-  const ReservationDetailScreen({super.key, required this.reservationId});
+/// Open the reservation detail as a modal dialog (with an X to close).
+Future<void> showReservationDetailDialog(
+    BuildContext context, String reservationId) {
+  return showDialog<void>(
+    context: context,
+    builder: (_) => ReservationDetailDialog(reservationId: reservationId),
+  );
+}
+
+class ReservationDetailDialog extends ConsumerStatefulWidget {
+  const ReservationDetailDialog({super.key, required this.reservationId});
   final String reservationId;
 
   @override
-  ConsumerState<ReservationDetailScreen> createState() =>
-      _ReservationDetailScreenState();
+  ConsumerState<ReservationDetailDialog> createState() =>
+      _ReservationDetailDialogState();
 }
 
-class _ReservationDetailScreenState
-    extends ConsumerState<ReservationDetailScreen> {
+class _ReservationDetailDialogState
+    extends ConsumerState<ReservationDetailDialog> {
   Timer? _ticker;
   bool _busy = false;
 
@@ -73,7 +80,6 @@ class _ReservationDetailScreenState
   Future<void> _cancel(Reservation r) async {
     final cid = ref.read(currentCommunityIdProvider);
     if (cid == null) return;
-    // NOTE: use the dialog's own context for pop, not the screen's.
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -94,7 +100,8 @@ class _ReservationDetailScreenState
               Expanded(
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                      backgroundColor: Theme.of(dialogContext).colorScheme.error),
+                      backgroundColor:
+                          Theme.of(dialogContext).colorScheme.error),
                   onPressed: () => Navigator.pop(dialogContext, true),
                   child: const Text('Cancel it'),
                 ),
@@ -111,9 +118,9 @@ class _ReservationDetailScreenState
           .read(reservationRepositoryProvider)
           .cancel(communityId: cid, reservationId: r.id);
       if (mounted) {
+        Navigator.of(context).pop(); // close the detail dialog
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Reservation cancelled.')));
-        context.go(Routes.myBookings);
       }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
@@ -127,33 +134,60 @@ class _ReservationDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final reservation = ref.watch(reservationProvider(widget.reservationId));
     final pinCache = ref.watch(pinCacheProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Reservation'),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go(Routes.myBookings),
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
+              child: Row(
+                children: [
+                  Text('Reservation', style: theme.textTheme.titleLarge),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: reservation.when(
+                loading: () => const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(child: CircularProgressIndicator())),
+                error: (e, _) => Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text('Error: $e')),
+                data: (r) {
+                  if (r == null) {
+                    return const Padding(
+                        padding: EdgeInsets.all(24), child: Text('Not found'));
+                  }
+                  final amenity = ref.watch(amenityProvider(r.amenityId)).value;
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                    child: _Body(
+                      reservation: r,
+                      amenityName: amenity?.name ?? 'Amenity',
+                      pin: pinCache[r.id],
+                      busy: _busy,
+                      onCheckIn: () => _checkIn(r),
+                      onCancel: () => _cancel(r),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-      ),
-      body: reservation.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (r) {
-          if (r == null) return const Center(child: Text('Not found'));
-          final amenity = ref.watch(amenityProvider(r.amenityId)).value;
-          return _Body(
-            reservation: r,
-            amenityName: amenity?.name ?? 'Amenity',
-            pin: pinCache[r.id],
-            busy: _busy,
-            onCheckIn: () => _checkIn(r),
-            onCancel: () => _cancel(r),
-          );
-        },
       ),
     );
   }
@@ -184,25 +218,24 @@ class _Body extends StatelessWidget {
     final end = r.endTime;
     final now = DateTime.now();
 
-    final live = r.status == ReservationStatus.booked ||
+    final liveStatus = r.status == ReservationStatus.booked ||
         r.status == ReservationStatus.checkedIn;
     final pinOpensAt = start?.subtract(const Duration(minutes: _pinLeadMinutes));
-    final accessOpen = live &&
+    final accessOpen = liveStatus &&
         start != null &&
         end != null &&
         now.isAfter(pinOpensAt!) &&
         now.isBefore(end);
-    final active = r.isActiveNow; // now within [start, end]
+    final active = r.isActiveNow;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Header card
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +244,7 @@ class _Body extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(amenityName,
-                        style: theme.textTheme.headlineSmall
+                        style: theme.textTheme.titleLarge
                             ?.copyWith(fontWeight: FontWeight.bold)),
                   ),
                   _StatusChip(status: r.status),
@@ -220,9 +253,8 @@ class _Body extends StatelessWidget {
               const SizedBox(height: 10),
               if (start != null)
                 _InfoLine(
-                  icon: Icons.event,
-                  text: DateFormat('EEEE, MMMM d').format(start),
-                ),
+                    icon: Icons.event,
+                    text: DateFormat('EEEE, MMMM d').format(start)),
               if (start != null && end != null)
                 _InfoLine(
                   icon: Icons.schedule,
@@ -234,31 +266,28 @@ class _Body extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 16),
-
+        const SizedBox(height: 14),
         _Countdown(start: start, end: end, active: active),
-        const SizedBox(height: 16),
-
+        const SizedBox(height: 14),
         if (accessOpen) ...[
           _AccessPanel(qrToken: r.qrToken, pin: pin),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           if (r.status == ReservationStatus.booked)
             FilledButton.icon(
               onPressed: (busy || !active) ? null : onCheckIn,
-              style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52)),
+              style:
+                  FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
               icon: const Icon(Icons.lock_open),
               label: Text(active ? 'Check in' : 'Check in opens at start'),
             ),
-        ] else if (live)
+        ] else if (liveStatus)
           _LockedAccessCard(pinOpensAt: pinOpensAt),
-
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         if (r.isUpcoming)
           OutlinedButton.icon(
             onPressed: busy ? null : onCancel,
             style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
+              minimumSize: const Size.fromHeight(48),
               foregroundColor: theme.colorScheme.error,
               side: BorderSide(color: theme.colorScheme.error),
             ),
@@ -316,12 +345,12 @@ class _Countdown extends StatelessWidget {
     }
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      padding: const EdgeInsets.symmetric(vertical: 22),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
         children: [
@@ -335,7 +364,7 @@ class _Countdown extends StatelessWidget {
           Text(value,
               style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 40,
+                  fontSize: 38,
                   fontWeight: FontWeight.bold,
                   fontFeatures: [FontFeature.tabularFigures()])),
         ],
@@ -363,14 +392,14 @@ class _LockedAccessCard extends StatelessWidget {
         ? DateFormat('h:mm a').format(pinOpensAt!)
         : 'shortly before start';
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
-          Icon(Icons.lock_clock, color: theme.colorScheme.primary, size: 28),
+          Icon(Icons.lock_clock, color: theme.colorScheme.primary, size: 26),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -401,53 +430,46 @@ class _AccessPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: theme.colorScheme.primary, width: 1.5),
       ),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.lock_open, size: 18, color: theme.colorScheme.primary),
-              const SizedBox(width: 6),
-              Text('YOUR ACCESS',
-                  style: TextStyle(
-                      letterSpacing: 1.5,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.primary)),
-            ],
-          ),
-          const SizedBox(height: 18),
+          Text('YOUR ACCESS',
+              style: TextStyle(
+                  letterSpacing: 1.5,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.primary)),
+          const SizedBox(height: 16),
           if (qrToken != null)
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: QrImageView(data: qrToken!, size: 190),
+              child: QrImageView(data: qrToken!, size: 170),
             ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 18),
           Text('PIN',
               style: theme.textTheme.labelMedium
                   ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             pin ?? '••••••',
-            style: theme.textTheme.displaySmall?.copyWith(
+            style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
-              letterSpacing: 10,
+              letterSpacing: 8,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
           if (pin == null)
             Padding(
-              padding: const EdgeInsets.only(top: 6),
+              padding: const EdgeInsets.only(top: 4),
               child: Text('Shown on the device you booked from',
                   style: theme.textTheme.bodySmall),
             ),

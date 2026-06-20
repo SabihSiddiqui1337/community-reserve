@@ -70,6 +70,7 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
     final amenity = ref.watch(amenityProvider(widget.amenityId));
     final community = ref.watch(activeCommunityProvider);
     final advanceDays = community.settings.advanceBookingDays;
+    final sportName = amenity.value?.name;
 
     return Scaffold(
       appBar: AppBar(
@@ -77,8 +78,17 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go(Routes.book),
         ),
-        title: const Text('Book a Court'),
         centerTitle: true,
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Book a Court', style: TextStyle(fontSize: 13)),
+            if (sportName != null)
+              Text(sportName,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
       body: amenity.when(
         loading: () => const Center(child: CircularProgressIndicator()),

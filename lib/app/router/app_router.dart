@@ -21,7 +21,6 @@ import '../../features/community/presentation/join_community_screen.dart';
 import '../../features/events/presentation/events_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/reservations/presentation/my_bookings_screen.dart';
-import '../../features/reservations/presentation/reservation_detail_screen.dart';
 import '../../features/residency/presentation/residency_status_screen.dart';
 import '../../features/residency/presentation/residency_verification_screen.dart';
 import '../shell/main_shell.dart';
@@ -116,13 +115,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: Routes.myBookings,
               builder: (_, _) => const MyBookingsScreen(),
-              routes: [
-                GoRoute(
-                  path: 'reservation/:reservationId',
-                  builder: (_, state) => ReservationDetailScreen(
-                      reservationId: state.pathParameters['reservationId']!),
-                ),
-              ],
             ),
           ]),
           // 3 — Admin

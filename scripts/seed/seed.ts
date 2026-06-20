@@ -75,6 +75,7 @@ interface MemberSeed {
   role: "admin" | "resident";
   residencyStatus: "pending" | "verified" | "rejected";
   unit: string;
+  address: string;
 }
 
 async function seedCommunity(opts: {
@@ -162,6 +163,7 @@ async function seedCommunity(opts: {
       role: m.role,
       residencyStatus: m.residencyStatus,
       unit: m.unit,
+      address: m.address,
       verificationDocUrl: null,
       reviewedBy: null,
       reviewedAt: null,
@@ -192,9 +194,9 @@ async function main(): Promise<void> {
       { id: "basketball", type: "basketball", name: "Basketball", description: "Full indoor court.", status: "active", slotMinutes: 60, capacity: 1, isPaid: true, amountCents: 500 },
     ],
     members: [
-      { uid: "admin-uid", email: "admin@maplegrove.test", name: "Dana Director", role: "admin", residencyStatus: "verified", unit: "A-1" },
-      { uid: "resident1-uid", email: "alex@maplegrove.test", name: "Alex Resident", role: "resident", residencyStatus: "verified", unit: "B-2" },
-      { uid: "resident2-uid", email: "sam@maplegrove.test", name: "Sam Resident", role: "resident", residencyStatus: "pending", unit: "C-3" },
+      { uid: "admin-uid", email: "admin@maplegrove.test", name: "Dana Director", role: "admin", residencyStatus: "verified", unit: "A-1", address: "100 Maplewood Dr, Unit A-1, Austin, TX 78701" },
+      { uid: "resident1-uid", email: "alex@maplegrove.test", name: "Alex Resident", role: "resident", residencyStatus: "verified", unit: "B-2", address: "100 Maplewood Dr, Unit B-2, Austin, TX 78701" },
+      { uid: "resident2-uid", email: "sam@maplegrove.test", name: "Sam Resident", role: "resident", residencyStatus: "pending", unit: "C-3", address: "100 Maplewood Dr, Unit C-3, Austin, TX 78701" },
     ],
   });
 
@@ -213,7 +215,7 @@ async function main(): Promise<void> {
       { id: "pool", type: "generic", name: "Swimming Pool", description: "Heated lap pool.", status: "active", slotMinutes: 60, capacity: 20 },
     ],
     members: [
-      { uid: "oak-admin-uid", email: "admin@oakwood.test", name: "Olivia Oak", role: "admin", residencyStatus: "verified", unit: "1A" },
+      { uid: "oak-admin-uid", email: "admin@oakwood.test", name: "Olivia Oak", role: "admin", residencyStatus: "verified", unit: "1A", address: "55 Oakwood Ln, Unit 1A, San Diego, CA 92101" },
     ],
   });
 

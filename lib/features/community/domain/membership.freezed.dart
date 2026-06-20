@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Membership {
 
- String get userId; MemberRole get role; ResidencyStatus get residencyStatus; String? get verificationDocUrl; String get unit; String? get reviewedBy;@TimestampConverter() DateTime? get reviewedAt; String? get rejectionReason; int get noShowCount;@TimestampConverter() DateTime? get bannedUntil;
+ String get userId; MemberRole get role; ResidencyStatus get residencyStatus; String? get verificationDocUrl; String get unit; String get address; String? get reviewedBy;@TimestampConverter() DateTime? get reviewedAt; String? get rejectionReason; int get noShowCount;@TimestampConverter() DateTime? get bannedUntil;
 /// Create a copy of Membership
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $MembershipCopyWith<Membership> get copyWith => _$MembershipCopyWithImpl<Members
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Membership&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.role, role) || other.role == role)&&(identical(other.residencyStatus, residencyStatus) || other.residencyStatus == residencyStatus)&&(identical(other.verificationDocUrl, verificationDocUrl) || other.verificationDocUrl == verificationDocUrl)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.reviewedBy, reviewedBy) || other.reviewedBy == reviewedBy)&&(identical(other.reviewedAt, reviewedAt) || other.reviewedAt == reviewedAt)&&(identical(other.rejectionReason, rejectionReason) || other.rejectionReason == rejectionReason)&&(identical(other.noShowCount, noShowCount) || other.noShowCount == noShowCount)&&(identical(other.bannedUntil, bannedUntil) || other.bannedUntil == bannedUntil));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Membership&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.role, role) || other.role == role)&&(identical(other.residencyStatus, residencyStatus) || other.residencyStatus == residencyStatus)&&(identical(other.verificationDocUrl, verificationDocUrl) || other.verificationDocUrl == verificationDocUrl)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.address, address) || other.address == address)&&(identical(other.reviewedBy, reviewedBy) || other.reviewedBy == reviewedBy)&&(identical(other.reviewedAt, reviewedAt) || other.reviewedAt == reviewedAt)&&(identical(other.rejectionReason, rejectionReason) || other.rejectionReason == rejectionReason)&&(identical(other.noShowCount, noShowCount) || other.noShowCount == noShowCount)&&(identical(other.bannedUntil, bannedUntil) || other.bannedUntil == bannedUntil));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,userId,role,residencyStatus,verificationDocUrl,unit,reviewedBy,reviewedAt,rejectionReason,noShowCount,bannedUntil);
+int get hashCode => Object.hash(runtimeType,userId,role,residencyStatus,verificationDocUrl,unit,address,reviewedBy,reviewedAt,rejectionReason,noShowCount,bannedUntil);
 
 @override
 String toString() {
-  return 'Membership(userId: $userId, role: $role, residencyStatus: $residencyStatus, verificationDocUrl: $verificationDocUrl, unit: $unit, reviewedBy: $reviewedBy, reviewedAt: $reviewedAt, rejectionReason: $rejectionReason, noShowCount: $noShowCount, bannedUntil: $bannedUntil)';
+  return 'Membership(userId: $userId, role: $role, residencyStatus: $residencyStatus, verificationDocUrl: $verificationDocUrl, unit: $unit, address: $address, reviewedBy: $reviewedBy, reviewedAt: $reviewedAt, rejectionReason: $rejectionReason, noShowCount: $noShowCount, bannedUntil: $bannedUntil)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $MembershipCopyWith<$Res>  {
   factory $MembershipCopyWith(Membership value, $Res Function(Membership) _then) = _$MembershipCopyWithImpl;
 @useResult
 $Res call({
- String userId, MemberRole role, ResidencyStatus residencyStatus, String? verificationDocUrl, String unit, String? reviewedBy,@TimestampConverter() DateTime? reviewedAt, String? rejectionReason, int noShowCount,@TimestampConverter() DateTime? bannedUntil
+ String userId, MemberRole role, ResidencyStatus residencyStatus, String? verificationDocUrl, String unit, String address, String? reviewedBy,@TimestampConverter() DateTime? reviewedAt, String? rejectionReason, int noShowCount,@TimestampConverter() DateTime? bannedUntil
 });
 
 
@@ -65,13 +65,14 @@ class _$MembershipCopyWithImpl<$Res>
 
 /// Create a copy of Membership
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? role = null,Object? residencyStatus = null,Object? verificationDocUrl = freezed,Object? unit = null,Object? reviewedBy = freezed,Object? reviewedAt = freezed,Object? rejectionReason = freezed,Object? noShowCount = null,Object? bannedUntil = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? role = null,Object? residencyStatus = null,Object? verificationDocUrl = freezed,Object? unit = null,Object? address = null,Object? reviewedBy = freezed,Object? reviewedAt = freezed,Object? rejectionReason = freezed,Object? noShowCount = null,Object? bannedUntil = freezed,}) {
   return _then(_self.copyWith(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as MemberRole,residencyStatus: null == residencyStatus ? _self.residencyStatus : residencyStatus // ignore: cast_nullable_to_non_nullable
 as ResidencyStatus,verificationDocUrl: freezed == verificationDocUrl ? _self.verificationDocUrl : verificationDocUrl // ignore: cast_nullable_to_non_nullable
 as String?,unit: null == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
+as String,address: null == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
 as String,reviewedBy: freezed == reviewedBy ? _self.reviewedBy : reviewedBy // ignore: cast_nullable_to_non_nullable
 as String?,reviewedAt: freezed == reviewedAt ? _self.reviewedAt : reviewedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,rejectionReason: freezed == rejectionReason ? _self.rejectionReason : rejectionReason // ignore: cast_nullable_to_non_nullable
@@ -162,10 +163,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String userId,  MemberRole role,  ResidencyStatus residencyStatus,  String? verificationDocUrl,  String unit,  String? reviewedBy, @TimestampConverter()  DateTime? reviewedAt,  String? rejectionReason,  int noShowCount, @TimestampConverter()  DateTime? bannedUntil)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String userId,  MemberRole role,  ResidencyStatus residencyStatus,  String? verificationDocUrl,  String unit,  String address,  String? reviewedBy, @TimestampConverter()  DateTime? reviewedAt,  String? rejectionReason,  int noShowCount, @TimestampConverter()  DateTime? bannedUntil)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Membership() when $default != null:
-return $default(_that.userId,_that.role,_that.residencyStatus,_that.verificationDocUrl,_that.unit,_that.reviewedBy,_that.reviewedAt,_that.rejectionReason,_that.noShowCount,_that.bannedUntil);case _:
+return $default(_that.userId,_that.role,_that.residencyStatus,_that.verificationDocUrl,_that.unit,_that.address,_that.reviewedBy,_that.reviewedAt,_that.rejectionReason,_that.noShowCount,_that.bannedUntil);case _:
   return orElse();
 
 }
@@ -183,10 +184,10 @@ return $default(_that.userId,_that.role,_that.residencyStatus,_that.verification
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String userId,  MemberRole role,  ResidencyStatus residencyStatus,  String? verificationDocUrl,  String unit,  String? reviewedBy, @TimestampConverter()  DateTime? reviewedAt,  String? rejectionReason,  int noShowCount, @TimestampConverter()  DateTime? bannedUntil)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String userId,  MemberRole role,  ResidencyStatus residencyStatus,  String? verificationDocUrl,  String unit,  String address,  String? reviewedBy, @TimestampConverter()  DateTime? reviewedAt,  String? rejectionReason,  int noShowCount, @TimestampConverter()  DateTime? bannedUntil)  $default,) {final _that = this;
 switch (_that) {
 case _Membership():
-return $default(_that.userId,_that.role,_that.residencyStatus,_that.verificationDocUrl,_that.unit,_that.reviewedBy,_that.reviewedAt,_that.rejectionReason,_that.noShowCount,_that.bannedUntil);case _:
+return $default(_that.userId,_that.role,_that.residencyStatus,_that.verificationDocUrl,_that.unit,_that.address,_that.reviewedBy,_that.reviewedAt,_that.rejectionReason,_that.noShowCount,_that.bannedUntil);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +204,10 @@ return $default(_that.userId,_that.role,_that.residencyStatus,_that.verification
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String userId,  MemberRole role,  ResidencyStatus residencyStatus,  String? verificationDocUrl,  String unit,  String? reviewedBy, @TimestampConverter()  DateTime? reviewedAt,  String? rejectionReason,  int noShowCount, @TimestampConverter()  DateTime? bannedUntil)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String userId,  MemberRole role,  ResidencyStatus residencyStatus,  String? verificationDocUrl,  String unit,  String address,  String? reviewedBy, @TimestampConverter()  DateTime? reviewedAt,  String? rejectionReason,  int noShowCount, @TimestampConverter()  DateTime? bannedUntil)?  $default,) {final _that = this;
 switch (_that) {
 case _Membership() when $default != null:
-return $default(_that.userId,_that.role,_that.residencyStatus,_that.verificationDocUrl,_that.unit,_that.reviewedBy,_that.reviewedAt,_that.rejectionReason,_that.noShowCount,_that.bannedUntil);case _:
+return $default(_that.userId,_that.role,_that.residencyStatus,_that.verificationDocUrl,_that.unit,_that.address,_that.reviewedBy,_that.reviewedAt,_that.rejectionReason,_that.noShowCount,_that.bannedUntil);case _:
   return null;
 
 }
@@ -218,7 +219,7 @@ return $default(_that.userId,_that.role,_that.residencyStatus,_that.verification
 @JsonSerializable()
 
 class _Membership implements Membership {
-  const _Membership({required this.userId, this.role = MemberRole.resident, this.residencyStatus = ResidencyStatus.pending, this.verificationDocUrl, this.unit = '', this.reviewedBy, @TimestampConverter() this.reviewedAt, this.rejectionReason, this.noShowCount = 0, @TimestampConverter() this.bannedUntil});
+  const _Membership({required this.userId, this.role = MemberRole.resident, this.residencyStatus = ResidencyStatus.pending, this.verificationDocUrl, this.unit = '', this.address = '', this.reviewedBy, @TimestampConverter() this.reviewedAt, this.rejectionReason, this.noShowCount = 0, @TimestampConverter() this.bannedUntil});
   factory _Membership.fromJson(Map<String, dynamic> json) => _$MembershipFromJson(json);
 
 @override final  String userId;
@@ -226,6 +227,7 @@ class _Membership implements Membership {
 @override@JsonKey() final  ResidencyStatus residencyStatus;
 @override final  String? verificationDocUrl;
 @override@JsonKey() final  String unit;
+@override@JsonKey() final  String address;
 @override final  String? reviewedBy;
 @override@TimestampConverter() final  DateTime? reviewedAt;
 @override final  String? rejectionReason;
@@ -245,16 +247,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Membership&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.role, role) || other.role == role)&&(identical(other.residencyStatus, residencyStatus) || other.residencyStatus == residencyStatus)&&(identical(other.verificationDocUrl, verificationDocUrl) || other.verificationDocUrl == verificationDocUrl)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.reviewedBy, reviewedBy) || other.reviewedBy == reviewedBy)&&(identical(other.reviewedAt, reviewedAt) || other.reviewedAt == reviewedAt)&&(identical(other.rejectionReason, rejectionReason) || other.rejectionReason == rejectionReason)&&(identical(other.noShowCount, noShowCount) || other.noShowCount == noShowCount)&&(identical(other.bannedUntil, bannedUntil) || other.bannedUntil == bannedUntil));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Membership&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.role, role) || other.role == role)&&(identical(other.residencyStatus, residencyStatus) || other.residencyStatus == residencyStatus)&&(identical(other.verificationDocUrl, verificationDocUrl) || other.verificationDocUrl == verificationDocUrl)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.address, address) || other.address == address)&&(identical(other.reviewedBy, reviewedBy) || other.reviewedBy == reviewedBy)&&(identical(other.reviewedAt, reviewedAt) || other.reviewedAt == reviewedAt)&&(identical(other.rejectionReason, rejectionReason) || other.rejectionReason == rejectionReason)&&(identical(other.noShowCount, noShowCount) || other.noShowCount == noShowCount)&&(identical(other.bannedUntil, bannedUntil) || other.bannedUntil == bannedUntil));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,userId,role,residencyStatus,verificationDocUrl,unit,reviewedBy,reviewedAt,rejectionReason,noShowCount,bannedUntil);
+int get hashCode => Object.hash(runtimeType,userId,role,residencyStatus,verificationDocUrl,unit,address,reviewedBy,reviewedAt,rejectionReason,noShowCount,bannedUntil);
 
 @override
 String toString() {
-  return 'Membership(userId: $userId, role: $role, residencyStatus: $residencyStatus, verificationDocUrl: $verificationDocUrl, unit: $unit, reviewedBy: $reviewedBy, reviewedAt: $reviewedAt, rejectionReason: $rejectionReason, noShowCount: $noShowCount, bannedUntil: $bannedUntil)';
+  return 'Membership(userId: $userId, role: $role, residencyStatus: $residencyStatus, verificationDocUrl: $verificationDocUrl, unit: $unit, address: $address, reviewedBy: $reviewedBy, reviewedAt: $reviewedAt, rejectionReason: $rejectionReason, noShowCount: $noShowCount, bannedUntil: $bannedUntil)';
 }
 
 
@@ -265,7 +267,7 @@ abstract mixin class _$MembershipCopyWith<$Res> implements $MembershipCopyWith<$
   factory _$MembershipCopyWith(_Membership value, $Res Function(_Membership) _then) = __$MembershipCopyWithImpl;
 @override @useResult
 $Res call({
- String userId, MemberRole role, ResidencyStatus residencyStatus, String? verificationDocUrl, String unit, String? reviewedBy,@TimestampConverter() DateTime? reviewedAt, String? rejectionReason, int noShowCount,@TimestampConverter() DateTime? bannedUntil
+ String userId, MemberRole role, ResidencyStatus residencyStatus, String? verificationDocUrl, String unit, String address, String? reviewedBy,@TimestampConverter() DateTime? reviewedAt, String? rejectionReason, int noShowCount,@TimestampConverter() DateTime? bannedUntil
 });
 
 
@@ -282,13 +284,14 @@ class __$MembershipCopyWithImpl<$Res>
 
 /// Create a copy of Membership
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? role = null,Object? residencyStatus = null,Object? verificationDocUrl = freezed,Object? unit = null,Object? reviewedBy = freezed,Object? reviewedAt = freezed,Object? rejectionReason = freezed,Object? noShowCount = null,Object? bannedUntil = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? role = null,Object? residencyStatus = null,Object? verificationDocUrl = freezed,Object? unit = null,Object? address = null,Object? reviewedBy = freezed,Object? reviewedAt = freezed,Object? rejectionReason = freezed,Object? noShowCount = null,Object? bannedUntil = freezed,}) {
   return _then(_Membership(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as MemberRole,residencyStatus: null == residencyStatus ? _self.residencyStatus : residencyStatus // ignore: cast_nullable_to_non_nullable
 as ResidencyStatus,verificationDocUrl: freezed == verificationDocUrl ? _self.verificationDocUrl : verificationDocUrl // ignore: cast_nullable_to_non_nullable
 as String?,unit: null == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
+as String,address: null == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
 as String,reviewedBy: freezed == reviewedBy ? _self.reviewedBy : reviewedBy // ignore: cast_nullable_to_non_nullable
 as String?,reviewedAt: freezed == reviewedAt ? _self.reviewedAt : reviewedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,rejectionReason: freezed == rejectionReason ? _self.rejectionReason : rejectionReason // ignore: cast_nullable_to_non_nullable

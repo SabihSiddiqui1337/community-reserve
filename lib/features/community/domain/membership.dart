@@ -20,6 +20,7 @@ abstract class Membership with _$Membership {
     @Default(ResidencyStatus.pending) ResidencyStatus residencyStatus,
     String? verificationDocUrl,
     @Default('') String unit,
+    @Default('') String address,
     String? reviewedBy,
     @TimestampConverter() DateTime? reviewedAt,
     String? rejectionReason,

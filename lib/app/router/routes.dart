@@ -27,10 +27,6 @@ class Routes {
           {required String start, required String end}) =>
       '/checkout/$amenityId?start=${Uri.encodeComponent(start)}&end=${Uri.encodeComponent(end)}';
 
-  // Reservation detail (within the My Bookings branch)
-  static const reservationDetail = '/bookings/reservation/:reservationId';
-  static String reservationTo(String id) => '/bookings/reservation/$id';
-
   // Admin (within the Admin branch)
   static const admin = '/admin';
   static const adminApprovals = '/admin/approvals';

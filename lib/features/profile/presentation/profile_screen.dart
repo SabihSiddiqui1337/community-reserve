@@ -53,6 +53,11 @@ class ProfileScreen extends ConsumerWidget {
           _Section(title: 'Community', children: [
             _Row(label: 'Community', value: community.name),
             _Row(
+                label: 'Address',
+                value: (membership?.address.isNotEmpty ?? false)
+                    ? membership!.address
+                    : community.address),
+            _Row(
                 label: 'Unit',
                 value: membership?.unit.isNotEmpty == true
                     ? membership!.unit
@@ -165,10 +170,15 @@ class _Row extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(value,
+                textAlign: TextAlign.right,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+          ),
         ],
       ),
     );

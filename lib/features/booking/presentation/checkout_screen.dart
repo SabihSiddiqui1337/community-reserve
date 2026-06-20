@@ -63,7 +63,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             court: _court,
           );
       ref.read(pinCacheProvider.notifier).put(res.reservationId, res.pin);
-      if (mounted) context.go(Routes.reservationTo(res.reservationId));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Reservation confirmed!')));
+        context.go(Routes.myBookings);
+      }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)

@@ -7,6 +7,7 @@ import '../../../app/router/routes.dart';
 import '../../amenities/data/amenity_repository.dart';
 import '../data/reservation_repository.dart';
 import '../domain/reservation.dart';
+import 'reservation_detail_dialog.dart';
 
 class MyBookingsScreen extends ConsumerWidget {
   const MyBookingsScreen({super.key});
@@ -68,9 +69,15 @@ class _BookingsList extends StatelessWidget {
       itemBuilder: (context, i) {
         final r = items[i];
         final active = r.isActiveNow;
+        // Cancelled / no-show / expired bookings aren't tappable.
+        final clickable = r.status == ReservationStatus.booked ||
+            r.status == ReservationStatus.checkedIn ||
+            r.status == ReservationStatus.completed;
         return Card(
           child: ListTile(
-            onTap: () => context.go(Routes.reservationTo(r.id)),
+            onTap: clickable
+                ? () => showReservationDetailDialog(context, r.id)
+                : null,
             leading: CircleAvatar(
               backgroundColor: active
                   ? theme.colorScheme.secondary
@@ -87,17 +94,40 @@ class _BookingsList extends StatelessWidget {
                 DateFormat('EEE, MMM d · h:mm a').format(r.startTime!),
               if (r.court != null) 'Court ${r.court}',
             ].join(' · ')),
-            trailing: active
-                ? Chip(
-                    label: const Text('Active'),
-                    backgroundColor: theme.colorScheme.secondaryContainer,
-                    side: BorderSide.none,
-                  )
-                : const Icon(Icons.chevron_right),
+            trailing: _trailing(theme, r.status, active),
           ),
         );
       },
     );
+  }
+}
+
+Widget _trailing(ThemeData theme, ReservationStatus status, bool active) {
+  if (active) {
+    return Chip(
+      label: const Text('Active'),
+      backgroundColor: theme.colorScheme.secondaryContainer,
+      side: BorderSide.none,
+    );
+  }
+  switch (status) {
+    case ReservationStatus.booked:
+    case ReservationStatus.checkedIn:
+    case ReservationStatus.completed:
+      return const Icon(Icons.chevron_right);
+    case ReservationStatus.cancelled:
+    case ReservationStatus.noShow:
+    case ReservationStatus.expired:
+      final label = switch (status) {
+        ReservationStatus.cancelled => 'CANCELLED',
+        ReservationStatus.noShow => 'NO-SHOW',
+        _ => 'EXPIRED',
+      };
+      return Text(label,
+          style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+              fontSize: 12));
   }
 }
 
