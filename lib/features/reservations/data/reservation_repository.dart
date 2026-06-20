@@ -68,6 +68,7 @@ class ReservationRepository {
     required DateTime start,
     required DateTime end,
     String? paymentId,
+    int? court,
   }) async {
     final callable = _functions.httpsCallable('createReservation');
     final result = await callable.call<Map<String, dynamic>>({
@@ -76,6 +77,7 @@ class ReservationRepository {
       'startTime': start.toUtc().toIso8601String(),
       'endTime': end.toUtc().toIso8601String(),
       'paymentId': ?paymentId,
+      'court': ?court,
     });
     return (
       reservationId: result.data['reservationId'] as String,

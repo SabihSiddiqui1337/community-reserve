@@ -35,11 +35,13 @@ export const createReservation = onCall(async (request) => {
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Sign in to book.");
 
-  const { communityId, amenityId, startTime, endTime, paymentId } =
+  const { communityId, amenityId, startTime, endTime, paymentId, court } =
     request.data ?? {};
   if (!communityId || !amenityId || !startTime || !endTime) {
     throw new HttpsError("invalid-argument", "Missing booking fields.");
   }
+  const requestedCourt: number | null =
+    typeof court === "number" ? court : null;
   const start = new Date(startTime);
   const end = new Date(endTime);
   if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
@@ -142,9 +144,30 @@ export const createReservation = onCall(async (request) => {
       throw new HttpsError("failed-precondition", "That slot is full.");
     }
 
+    // Court assignment: honor the requested court if free, else lowest free.
+    const bookedCourts = new Set<number>();
+    for (const d of overlapping) {
+      const c = d.data().court as number | undefined;
+      if (c) bookedCourts.add(c);
+    }
+    let assignedCourt = requestedCourt;
+    if (assignedCourt) {
+      if (bookedCourts.has(assignedCourt)) {
+        throw new HttpsError("failed-precondition", "That court is taken.");
+      }
+    } else {
+      for (let c = 1; c <= capacity; c++) {
+        if (!bookedCourts.has(c)) {
+          assignedCourt = c;
+          break;
+        }
+      }
+    }
+
     tx.set(reservationsCol.doc(reservationId), {
       amenityId,
       userId: uid,
+      court: assignedCourt ?? 1,
       startTime: Timestamp.fromDate(start),
       endTime: Timestamp.fromDate(end),
       status: "booked",

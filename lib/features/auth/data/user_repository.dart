@@ -33,6 +33,10 @@ class UserRepository {
       _doc(uid).set({
         'fcmTokens': FieldValue.arrayUnion([token]),
       }, SetOptions(merge: true));
+
+  /// Store the last 4 digits of a card on file (demo — no real card data).
+  Future<void> setCardLast4(String uid, String last4) =>
+      _doc(uid).set({'cardLast4': last4}, SetOptions(merge: true));
 }
 
 final userRepositoryProvider = Provider<UserRepository>(

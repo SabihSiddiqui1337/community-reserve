@@ -1,32 +1,36 @@
-/// Centralized route paths/names. Screens land phase by phase; later phases
-/// fill in the amenity/booking/admin sub-routes.
+/// Centralized route paths. The app uses a persistent bottom-nav shell with
+/// five branches (Events, Book, My Bookings, Admin, Profile).
 class Routes {
   const Routes._();
 
   static const splash = '/';
-  static const home = '/home';
 
-  // Auth & onboarding (Phase 1)
+  // Auth & onboarding
   static const signIn = '/sign-in';
   static const signUp = '/sign-up';
   static const joinCommunity = '/join';
   static const residencyVerification = '/residency';
   static const residencyStatus = '/residency-status';
 
-  // Resident (Phase 2+)
-  static const amenities = '/amenities';
-  static const amenityDetail = '/amenities/:amenityId';
-  static const booking = '/book/:amenityId';
-  static const reservationDetail = '/reservation/:reservationId';
-  static const waitlist = '/waitlist';
-  static const inbox = '/inbox';
+  // Shell tabs
+  static const events = '/events';
+  static const book = '/book';
+  static const myBookings = '/bookings';
   static const profile = '/profile';
 
-  static String amenityDetailTo(String id) => '/amenities/$id';
-  static String bookingTo(String amenityId) => '/book/$amenityId';
-  static String reservationTo(String id) => '/reservation/$id';
+  // Book flow (within the Book branch)
+  static const bookSlots = '/book/slots/:amenityId';
+  static const bookCheckout = '/book/checkout/:amenityId';
+  static String bookSlotsTo(String amenityId) => '/book/slots/$amenityId';
+  static String bookCheckoutTo(String amenityId,
+          {required String start, required String end}) =>
+      '/book/checkout/$amenityId?start=${Uri.encodeComponent(start)}&end=${Uri.encodeComponent(end)}';
 
-  // Admin (Phase 1 approvals; Phase 6 the rest)
+  // Reservation detail (within the My Bookings branch)
+  static const reservationDetail = '/bookings/reservation/:reservationId';
+  static String reservationTo(String id) => '/bookings/reservation/$id';
+
+  // Admin (within the Admin branch)
   static const admin = '/admin';
   static const adminApprovals = '/admin/approvals';
   static const adminAmenities = '/admin/amenities';

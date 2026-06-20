@@ -15,6 +15,7 @@ abstract class AppUser with _$AppUser {
     String? photoUrl,
     @Default(<String>[]) List<String> fcmTokens,
     @Default('resident') String globalRole, // resident | superAdmin
+    String? cardLast4, // card-on-file (last 4 digits only; demo)
   }) = _AppUser;
 
   factory AppUser.fromJson(Map<String, dynamic> json) =>

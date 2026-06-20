@@ -29,10 +29,8 @@ class AdminDashboardScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin'),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => context.go(Routes.home),
-        ),
+        centerTitle: true,
+        automaticallyImplyLeading: false,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

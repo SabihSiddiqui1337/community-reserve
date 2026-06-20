@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../app/router/routes.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/data/user_repository.dart';
 import '../../community/application/tenant_providers.dart';
@@ -21,10 +19,8 @@ class ProfileScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
-        leading: IconButton(
-          icon: const Icon(Icons.home_outlined),
-          onPressed: () => context.go(Routes.home),
-        ),
+        centerTitle: true,
+        automaticallyImplyLeading: false,
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
@@ -75,12 +71,22 @@ class ProfileScreen extends ConsumerWidget {
                     : 'Good standing'),
           ]),
           const SizedBox(height: 16),
-          _Section(title: 'Payment methods', children: const [
+          _Section(title: 'Payment methods', children: [
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.credit_card),
-              title: Text('No card on file'),
-              subtitle: Text('Stripe wallet (Apple/Google Pay, cards) — coming soon'),
+              leading: const Icon(Icons.credit_card),
+              title: Text(user?.cardLast4 != null
+                  ? '•••• ${user!.cardLast4}'
+                  : 'No card on file'),
+              subtitle: const Text('Tap to add or change your card'),
+              trailing: const Icon(Icons.edit_outlined),
+              onTap: () => _editCard(context, ref, user?.uid),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.apple),
+              title: const Text('Apple Pay'),
+              subtitle: const Text('Available at checkout (coming soon)'),
             ),
           ]),
           const SizedBox(height: 28),
@@ -93,6 +99,39 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _editCard(
+      BuildContext context, WidgetRef ref, String? uid) async {
+    if (uid == null) return;
+    final ctl = TextEditingController();
+    final last4 = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Card on file'),
+        content: TextField(
+          controller: ctl,
+          keyboardType: TextInputType.number,
+          maxLength: 4,
+          decoration: const InputDecoration(
+            labelText: 'Last 4 digits',
+            hintText: '9293',
+            counterText: '',
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, ctl.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (last4 == null || last4.length != 4) return;
+    await ref.read(userRepositoryProvider).setCardLast4(uid, last4);
   }
 
   String _residencyLabel(ResidencyStatus? s) => switch (s) {

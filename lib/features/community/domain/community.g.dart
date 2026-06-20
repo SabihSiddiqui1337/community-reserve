@@ -8,8 +8,8 @@ part of 'community.dart';
 
 _Branding _$BrandingFromJson(Map<String, dynamic> json) => _Branding(
   logoUrl: json['logoUrl'] as String?,
-  primaryColor: json['primaryColor'] as String? ?? '#5B8DEF',
-  accentColor: json['accentColor'] as String? ?? '#22D3A6',
+  primaryColor: json['primaryColor'] as String? ?? '#C9A24A',
+  accentColor: json['accentColor'] as String? ?? '#E4C16B',
   backgroundUrl: json['backgroundUrl'] as String?,
   theme: json['theme'] as String? ?? 'dark',
 );

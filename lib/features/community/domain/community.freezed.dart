@@ -213,7 +213,7 @@ return $default(_that.logoUrl,_that.primaryColor,_that.accentColor,_that.backgro
 @JsonSerializable()
 
 class _Branding implements Branding {
-  const _Branding({this.logoUrl, this.primaryColor = '#5B8DEF', this.accentColor = '#22D3A6', this.backgroundUrl, this.theme = 'dark'});
+  const _Branding({this.logoUrl, this.primaryColor = '#C9A24A', this.accentColor = '#E4C16B', this.backgroundUrl, this.theme = 'dark'});
   factory _Branding.fromJson(Map<String, dynamic> json) => _$BrandingFromJson(json);
 
 @override final  String? logoUrl;

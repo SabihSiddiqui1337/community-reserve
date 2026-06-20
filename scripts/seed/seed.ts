@@ -43,7 +43,7 @@ async function ensureUser(
     }
   }
   await db.doc(`users/${uid}`).set(
-    { name, email, phone: "", photoUrl: null, fcmTokens: [], globalRole },
+    { name, email, phone: "", photoUrl: null, fcmTokens: [], globalRole, cardLast4: "9293" },
     { merge: true }
   );
 }
@@ -120,6 +120,12 @@ async function seedCommunity(opts: {
     primaryColor: opts.primaryColor,
   });
 
+  // Clear stale amenities so removed ones (e.g. old gym) don't linger.
+  const existingAmenities = await cref.collection("amenities").get();
+  for (const d of existingAmenities.docs) {
+    if (!opts.amenities.some((a) => a.id === d.id)) await d.ref.delete();
+  }
+
   for (const a of opts.amenities) {
     await cref.collection("amenities").doc(a.id).set({
       type: a.type,
@@ -173,9 +179,9 @@ async function main(): Promise<void> {
     theme: "dark",
     paymentsEnabled: true,
     amenities: [
-      { id: "pickleball", type: "pickleballCourt", name: "Pickleball Courts", description: "Two championship courts with lights.", status: "active", slotMinutes: 60, capacity: 2 },
-      { id: "gym", type: "gym", name: "Fitness Center", description: "Cardio + weights. Coming soon.", status: "comingSoon", slotMinutes: 60, capacity: 10 },
-      { id: "hall", type: "hall", name: "Community Hall", description: "Event space for up to 80 guests.", status: "active", slotMinutes: 240, capacity: 1, isPaid: true, amountCents: 7500 },
+      { id: "hall", type: "hall", name: "Event Hall", description: "Private event space for gatherings and parties.", status: "active", slotMinutes: 60, capacity: 1, isPaid: true, amountCents: 500 },
+      { id: "pickleball", type: "pickleballCourt", name: "Pickleball", description: "Two championship courts with lights.", status: "active", slotMinutes: 60, capacity: 2, isPaid: true, amountCents: 500 },
+      { id: "basketball", type: "basketball", name: "Basketball", description: "Full indoor court.", status: "active", slotMinutes: 60, capacity: 1, isPaid: true, amountCents: 500 },
     ],
     members: [
       { uid: "admin-uid", email: "admin@maplegrove.test", name: "Dana Director", role: "admin", residencyStatus: "verified", unit: "A-1" },
@@ -202,6 +208,20 @@ async function main(): Promise<void> {
       { uid: "oak-admin-uid", email: "admin@oakwood.test", name: "Olivia Oak", role: "admin", residencyStatus: "verified", unit: "1A" },
     ],
   });
+
+  // Demo announcements for Maple Grove's Events tab.
+  const ann = db.collection("communities/demo-hoa/announcements");
+  const annData = [
+    { title: "Welcome to Maple Grove!", body: "Book courts and the event hall right from the app. Questions? Reach out to the front office.", authorName: "Dana Director", type: "announcement", offset: 0 },
+    { title: "Pickleball tournament — Saturday 10am", body: "Sign up at the clubhouse. Doubles bracket, prizes for the top 3 teams.", authorName: "Dana Director", type: "event", offset: 1 },
+    { title: "Event Hall now bookable", body: "The renovated Event Hall is open for reservations. $5/hr for residents.", authorName: "Dana Director", type: "announcement", offset: 2 },
+  ];
+  for (const a of annData) {
+    await ann.add({
+      title: a.title, body: a.body, authorName: a.authorName, type: a.type,
+      createdAt: Timestamp.fromMillis(Timestamp.now().toMillis() - a.offset * 86_400_000),
+    });
+  }
 
   // Sample reservations for Maple Grove's Alex.
   const res = db.collection("communities/demo-hoa/reservations");

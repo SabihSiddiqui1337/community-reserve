@@ -15,6 +15,7 @@ _Reservation _$ReservationFromJson(Map<String, dynamic> json) => _Reservation(
   status:
       $enumDecodeNullable(_$ReservationStatusEnumMap, json['status']) ??
       ReservationStatus.booked,
+  court: (json['court'] as num?)?.toInt(),
   pinHash: json['pinHash'] as String?,
   salt: json['salt'] as String?,
   qrToken: json['qrToken'] as String?,
@@ -33,6 +34,7 @@ Map<String, dynamic> _$ReservationToJson(_Reservation instance) =>
       'startTime': const TimestampConverter().toJson(instance.startTime),
       'endTime': const TimestampConverter().toJson(instance.endTime),
       'status': _$ReservationStatusEnumMap[instance.status]!,
+      'court': instance.court,
       'pinHash': instance.pinHash,
       'salt': instance.salt,
       'qrToken': instance.qrToken,

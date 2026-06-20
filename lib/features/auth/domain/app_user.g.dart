@@ -16,6 +16,7 @@ _AppUser _$AppUserFromJson(Map<String, dynamic> json) => _AppUser(
       (json['fcmTokens'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const <String>[],
   globalRole: json['globalRole'] as String? ?? 'resident',
+  cardLast4: json['cardLast4'] as String?,
 );
 
 Map<String, dynamic> _$AppUserToJson(_AppUser instance) => <String, dynamic>{
@@ -26,4 +27,5 @@ Map<String, dynamic> _$AppUserToJson(_AppUser instance) => <String, dynamic>{
   'photoUrl': instance.photoUrl,
   'fcmTokens': instance.fcmTokens,
   'globalRole': instance.globalRole,
+  'cardLast4': instance.cardLast4,
 };

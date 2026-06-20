@@ -25,6 +25,7 @@ abstract class Reservation with _$Reservation {
     @TimestampConverter() DateTime? startTime,
     @TimestampConverter() DateTime? endTime,
     @Default(ReservationStatus.booked) ReservationStatus status,
+    int? court, // assigned court number (1-based) for multi-court amenities
     String? pinHash,
     String? salt,
     String? qrToken,

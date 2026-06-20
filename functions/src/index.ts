@@ -13,6 +13,7 @@ export { validateAccess } from "./callable/validateAccess";
 export { cancelReservation } from "./callable/cancelReservation";
 export { joinWaitlist } from "./callable/joinWaitlist";
 export { createPayment } from "./callable/createPayment";
+export { getAvailability } from "./callable/getAvailability";
 
 // Scheduled (background) jobs
 export { graceSweep } from "./scheduled/graceSweep";

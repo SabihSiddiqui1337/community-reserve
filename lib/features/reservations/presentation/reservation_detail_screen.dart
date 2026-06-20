@@ -92,7 +92,7 @@ class _ReservationDetailScreenState
       await ref
           .read(reservationRepositoryProvider)
           .cancel(communityId: cid, reservationId: r.id);
-      if (mounted) context.go(Routes.home);
+      if (mounted) context.go(Routes.myBookings);
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -112,8 +112,8 @@ class _ReservationDetailScreenState
       appBar: AppBar(
         title: const Text('Reservation'),
         leading: IconButton(
-          icon: const Icon(Icons.home_outlined),
-          onPressed: () => context.go(Routes.home),
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go(Routes.myBookings),
         ),
       ),
       body: reservation.when(

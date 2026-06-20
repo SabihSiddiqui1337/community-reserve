@@ -98,6 +98,13 @@ service cloud.firestore {
         allow write: if isCommunityAdmin(communityId) || isSuperAdmin();
       }
 
+      // Announcements / events: members read, admins post.
+      match /announcements/{announcementId} {
+        allow read: if isMember(communityId) || isSuperAdmin();
+        allow create, update, delete:
+          if isCommunityAdmin(communityId) || isSuperAdmin();
+      }
+
       // Reservations are created/mutated by Cloud Functions (Admin SDK).
       // Clients may only READ their own or, for admins, all.
       match /reservations/{reservationId} {

@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,41 +6,49 @@ import '../../features/admin/amenities_manager/presentation/amenities_manager_sc
 import '../../features/admin/approvals/presentation/approvals_screen.dart';
 import '../../features/admin/branding_editor/presentation/branding_editor_screen.dart';
 import '../../features/admin/members/presentation/members_screen.dart';
+import '../../features/admin/presentation/admin_dashboard_screen.dart';
 import '../../features/admin/reports/presentation/reports_screen.dart';
 import '../../features/admin/reservations_calendar/presentation/admin_reservations_screen.dart';
 import '../../features/admin/settings/presentation/community_settings_screen.dart';
-import '../../features/amenities/presentation/amenities_list_screen.dart';
-import '../../features/amenities/presentation/amenity_detail_screen.dart';
-import '../../features/booking/presentation/booking_screen.dart';
-import '../../features/reservations/presentation/reservation_detail_screen.dart';
-import '../../features/admin/presentation/admin_dashboard_screen.dart';
 import '../../features/auth/application/onboarding.dart';
 import '../../features/auth/presentation/sign_in_screen.dart';
 import '../../features/auth/presentation/sign_up_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
+import '../../features/booking/presentation/checkout_screen.dart';
+import '../../features/booking/presentation/slot_screen.dart';
+import '../../features/booking/presentation/sport_picker_screen.dart';
 import '../../features/community/presentation/join_community_screen.dart';
-import '../../features/home/presentation/home_screen.dart';
-import '../../features/notifications/presentation/inbox_screen.dart';
+import '../../features/events/presentation/events_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
-import '../../features/waitlist/presentation/waitlist_screen.dart';
+import '../../features/reservations/presentation/my_bookings_screen.dart';
+import '../../features/reservations/presentation/reservation_detail_screen.dart';
 import '../../features/residency/presentation/residency_status_screen.dart';
 import '../../features/residency/presentation/residency_verification_screen.dart';
+import '../shell/main_shell.dart';
 import 'routes.dart';
 
-/// App-wide router with an onboarding-gated `redirect`. The redirect reads the
-/// [onboardingStageProvider] and keeps the user on the correct screen for their
-/// state (signed out → join → verify → pending → home), so they can't deep-link
-/// past a gate.
+final _rootKey = GlobalKey<NavigatorState>();
+
+/// App-wide router: onboarding-gated, then a persistent bottom-nav shell with
+/// five branches (Events · Book · My Bookings · Admin · Profile).
 final routerProvider = Provider<GoRouter>((ref) {
-  // Refresh routing whenever onboarding state changes.
   final refresh = _ProviderRefresh(ref);
 
   return GoRouter(
+    navigatorKey: _rootKey,
     initialLocation: Routes.splash,
     refreshListenable: refresh,
     redirect: (context, state) {
       final stage = ref.read(onboardingStageProvider);
       final loc = state.matchedLocation;
+      const onboarding = {
+        Routes.splash,
+        Routes.signIn,
+        Routes.signUp,
+        Routes.joinCommunity,
+        Routes.residencyVerification,
+        Routes.residencyStatus,
+      };
 
       switch (stage) {
         case OnboardingStage.loading:
@@ -58,21 +66,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         case OnboardingStage.pendingReview:
           return loc == Routes.residencyStatus ? null : Routes.residencyStatus;
         case OnboardingStage.rejected:
-          // Allow the status screen and the resubmit form.
           return (loc == Routes.residencyStatus ||
                   loc == Routes.residencyVerification)
               ? null
               : Routes.residencyStatus;
         case OnboardingStage.ready:
-          const onboarding = {
-            Routes.splash,
-            Routes.signIn,
-            Routes.signUp,
-            Routes.joinCommunity,
-            Routes.residencyVerification,
-            Routes.residencyStatus,
-          };
-          return onboarding.contains(loc) ? Routes.home : null;
+          return onboarding.contains(loc) ? Routes.events : null;
       }
     },
     routes: [
@@ -88,60 +87,95 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
           path: Routes.residencyStatus,
           builder: (_, _) => const ResidencyStatusScreen()),
-      GoRoute(path: Routes.home, builder: (_, _) => const HomeScreen()),
 
-      // Resident
-      GoRoute(
-          path: Routes.amenities,
-          builder: (_, _) => const AmenitiesListScreen()),
-      GoRoute(
-        path: Routes.amenityDetail,
-        builder: (_, state) => AmenityDetailScreen(
-            amenityId: state.pathParameters['amenityId']!),
+      // ---- Main app shell with persistent bottom navigation ----
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            MainShell(navigationShell: navigationShell),
+        branches: [
+          // 0 — Events
+          StatefulShellBranch(routes: [
+            GoRoute(path: Routes.events, builder: (_, _) => const EventsScreen()),
+          ]),
+          // 1 — Book
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: Routes.book,
+              builder: (_, _) => const SportPickerScreen(),
+              routes: [
+                GoRoute(
+                  path: 'slots/:amenityId',
+                  builder: (_, state) =>
+                      SlotScreen(amenityId: state.pathParameters['amenityId']!),
+                ),
+                GoRoute(
+                  path: 'checkout/:amenityId',
+                  builder: (_, state) => CheckoutScreen(
+                    amenityId: state.pathParameters['amenityId']!,
+                    start: DateTime.parse(state.uri.queryParameters['start']!)
+                        .toLocal(),
+                    end: DateTime.parse(state.uri.queryParameters['end']!)
+                        .toLocal(),
+                  ),
+                ),
+              ],
+            ),
+          ]),
+          // 2 — My Bookings
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: Routes.myBookings,
+              builder: (_, _) => const MyBookingsScreen(),
+              routes: [
+                GoRoute(
+                  path: 'reservation/:reservationId',
+                  builder: (_, state) => ReservationDetailScreen(
+                      reservationId: state.pathParameters['reservationId']!),
+                ),
+              ],
+            ),
+          ]),
+          // 3 — Admin
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: Routes.admin,
+              builder: (_, _) => const AdminDashboardScreen(),
+              routes: [
+                GoRoute(
+                    path: 'approvals',
+                    builder: (_, _) => const ApprovalsScreen()),
+                GoRoute(
+                    path: 'amenities',
+                    builder: (_, _) => const AmenitiesManagerScreen()),
+                GoRoute(
+                    path: 'reservations',
+                    builder: (_, _) => const AdminReservationsScreen()),
+                GoRoute(
+                    path: 'reports', builder: (_, _) => const ReportsScreen()),
+                GoRoute(
+                    path: 'branding',
+                    builder: (_, _) => const BrandingEditorScreen()),
+                GoRoute(
+                    path: 'settings',
+                    builder: (_, _) => const CommunitySettingsScreen()),
+                GoRoute(
+                    path: 'members',
+                    builder: (_, _) => const MembersScreen()),
+              ],
+            ),
+          ]),
+          // 4 — Profile
+          StatefulShellBranch(routes: [
+            GoRoute(
+                path: Routes.profile, builder: (_, _) => const ProfileScreen()),
+          ]),
+        ],
       ),
-      GoRoute(
-        path: Routes.booking,
-        builder: (_, state) =>
-            BookingScreen(amenityId: state.pathParameters['amenityId']!),
-      ),
-      GoRoute(
-        path: Routes.reservationDetail,
-        builder: (_, state) => ReservationDetailScreen(
-            reservationId: state.pathParameters['reservationId']!),
-      ),
-      GoRoute(path: Routes.waitlist, builder: (_, _) => const WaitlistScreen()),
-      GoRoute(path: Routes.inbox, builder: (_, _) => const InboxScreen()),
-      GoRoute(path: Routes.profile, builder: (_, _) => const ProfileScreen()),
-
-      // Admin
-      GoRoute(
-          path: Routes.admin, builder: (_, _) => const AdminDashboardScreen()),
-      GoRoute(
-          path: Routes.adminApprovals,
-          builder: (_, _) => const ApprovalsScreen()),
-      GoRoute(
-          path: Routes.adminAmenities,
-          builder: (_, _) => const AmenitiesManagerScreen()),
-      GoRoute(
-          path: Routes.adminReservations,
-          builder: (_, _) => const AdminReservationsScreen()),
-      GoRoute(
-          path: Routes.adminReports,
-          builder: (_, _) => const ReportsScreen()),
-      GoRoute(
-          path: Routes.adminBranding,
-          builder: (_, _) => const BrandingEditorScreen()),
-      GoRoute(
-          path: Routes.adminSettings,
-          builder: (_, _) => const CommunitySettingsScreen()),
-      GoRoute(
-          path: Routes.adminMembers,
-          builder: (_, _) => const MembersScreen()),
     ],
   );
 });
 
-/// Bridges Riverpod state changes to GoRouter's [Listenable] refresh.
+/// Bridges Riverpod state changes to GoRouter's refresh.
 class _ProviderRefresh extends ChangeNotifier {
   _ProviderRefresh(Ref ref) {
     ref.listen(onboardingStageProvider, (_, _) => notifyListeners());

@@ -1,6 +1,5 @@
 import 'package:amenry/features/amenities/domain/amenity.dart';
 import 'package:amenry/features/booking/domain/availability.dart';
-import 'package:amenry/features/reservations/domain/reservation.dart';
 import 'package:amenry/shared/money/money.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -23,40 +22,43 @@ void main() {
       expect(slots.last.end.hour, 12);
     });
 
-    test('counts overlapping reservations against capacity', () {
-      final overlapping = Reservation(
-        id: 'r',
-        amenityId: 'a',
-        userId: 'u',
-        startTime: DateTime(2026, 6, 20, 8),
-        endTime: DateTime(2026, 6, 20, 9),
-      );
-      final slots = computeDaySlots(amenity, day, [overlapping]);
+    test('counts overlapping busy intervals against capacity', () {
+      final busy = [
+        BusyInterval(
+          start: DateTime(2026, 6, 20, 8),
+          end: DateTime(2026, 6, 20, 9),
+          court: 1,
+        ),
+      ];
+      final slots = computeDaySlots(amenity, day, busy);
       final eight = slots.firstWhere((s) => s.start.hour == 8);
       expect(eight.booked, 1);
       expect(eight.remaining, 1);
       expect(eight.isAvailable, isTrue); // capacity 2
+      expect(eight.bookedCourts, {1});
 
       final nine = slots.firstWhere((s) => s.start.hour == 9);
       expect(nine.booked, 0);
     });
 
-    test('cancelled reservations do not occupy a slot', () {
-      final cancelled = Reservation(
-        id: 'r',
-        amenityId: 'a',
-        userId: 'u',
-        status: ReservationStatus.cancelled,
-        startTime: DateTime(2026, 6, 20, 8),
-        endTime: DateTime(2026, 6, 20, 9),
-      );
-      final slots = computeDaySlots(amenity, day, [cancelled]);
-      expect(slots.firstWhere((s) => s.start.hour == 8).booked, 0);
+    test('a fully-booked hour is unavailable', () {
+      final busy = [
+        for (var c = 1; c <= 2; c++)
+          BusyInterval(
+            start: DateTime(2026, 6, 20, 10),
+            end: DateTime(2026, 6, 20, 11),
+            court: c,
+          ),
+      ];
+      final slots = computeDaySlots(amenity, day, busy);
+      final ten = slots.firstWhere((s) => s.start.hour == 10);
+      expect(ten.isAvailable, isFalse);
+      expect(ten.bookedCourts, {1, 2});
     });
   });
 
   test('Money formats integer cents', () {
-    expect(Money.format(7500), r'$75.00');
+    expect(Money.format(500), r'$5.00');
     expect(Money.format(0), r'$0.00');
   });
 }
