@@ -5,6 +5,7 @@ import '../../auth/application/auth_controller.dart';
 import '../../auth/data/user_repository.dart';
 import '../../community/application/tenant_providers.dart';
 import '../../community/domain/membership.dart';
+import '../../payments/presentation/payment_methods_sheet.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -23,7 +24,8 @@ class ProfileScreen extends ConsumerWidget {
         automaticallyImplyLeading: false,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
         children: [
           Center(
             child: Column(
@@ -72,21 +74,39 @@ class ProfileScreen extends ConsumerWidget {
           ]),
           const SizedBox(height: 16),
           _Section(title: 'Payment methods', children: [
+            if ((user?.paymentMethods ?? const []).isEmpty)
+              const ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.credit_card),
+                title: Text('No cards on file'),
+              )
+            else
+              for (final c in user!.paymentMethods)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.credit_card),
+                  title: Text('${c.brand}  •••• ${c.last4}'),
+                  trailing: c.id == user.selectedCardId
+                      ? Icon(Icons.check_circle,
+                          color: theme.colorScheme.primary)
+                      : null,
+                ),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.credit_card),
-              title: Text(user?.cardLast4 != null
-                  ? '•••• ${user!.cardLast4}'
-                  : 'No card on file'),
-              subtitle: const Text('Tap to add or change your card'),
-              trailing: const Icon(Icons.edit_outlined),
-              onTap: () => _editCard(context, ref, user?.uid),
+              leading: const Icon(Icons.tune),
+              title: const Text('Manage cards'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                builder: (_) => const PaymentMethodsSheet(),
+              ),
             ),
-            ListTile(
+            const ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.apple),
-              title: const Text('Apple Pay'),
-              subtitle: const Text('Available at checkout (coming soon)'),
+              leading: Icon(Icons.apple),
+              title: Text('Apple Pay'),
+              subtitle: Text('Available at checkout'),
             ),
           ]),
           const SizedBox(height: 28),
@@ -99,39 +119,6 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  Future<void> _editCard(
-      BuildContext context, WidgetRef ref, String? uid) async {
-    if (uid == null) return;
-    final ctl = TextEditingController();
-    final last4 = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Card on file'),
-        content: TextField(
-          controller: ctl,
-          keyboardType: TextInputType.number,
-          maxLength: 4,
-          decoration: const InputDecoration(
-            labelText: 'Last 4 digits',
-            hintText: '9293',
-            counterText: '',
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, ctl.text.trim()),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-    if (last4 == null || last4.length != 4) return;
-    await ref.read(userRepositoryProvider).setCardLast4(uid, last4);
   }
 
   String _residencyLabel(ResidencyStatus? s) => switch (s) {

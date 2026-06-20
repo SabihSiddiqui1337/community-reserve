@@ -7,6 +7,8 @@ import '../../../app/router/routes.dart';
 import '../../../shared/money/money.dart';
 import '../../amenities/data/amenity_repository.dart';
 import '../../community/application/tenant_providers.dart';
+import '../../reservations/data/reservation_repository.dart';
+import '../../reservations/domain/reservation.dart';
 import '../data/availability_repository.dart';
 import '../domain/availability.dart';
 
@@ -23,13 +25,17 @@ class SlotScreen extends ConsumerStatefulWidget {
 class _SlotScreenState extends ConsumerState<SlotScreen> {
   DateTime _day = DateTime.now();
   final Set<int> _selected = {}; // indices into the day's visible slots
+  bool _capHit = false;
 
   bool _isToday(DateTime d) {
     final now = DateTime.now();
     return d.year == now.year && d.month == now.month && d.day == now.day;
   }
 
-  /// Contiguous selection: extend at either end, shrink from an end, else reset.
+  static const _maxHours = 2; // residents can book up to 2 consecutive hours
+
+  /// Contiguous selection: extend at either end (up to [_maxHours]), shrink from
+  /// an end, else reset.
   void _toggle(int index, int lastIndex) {
     setState(() {
       if (_selected.isEmpty) {
@@ -39,6 +45,11 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
       final min = _selected.reduce((a, b) => a < b ? a : b);
       final max = _selected.reduce((a, b) => a > b ? a : b);
       if (index == max + 1 || index == min - 1) {
+        if (_selected.length >= _maxHours) {
+          // At the 2-hour cap — ignore further extension.
+          _capHit = true;
+          return;
+        }
         _selected.add(index);
       } else if (index == max && _selected.length > 1) {
         _selected.remove(index);
@@ -109,7 +120,19 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
                             itemBuilder: (context, i) => _SlotRow(
                               slot: slots[i],
                               selected: _selected.contains(i),
-                              onTap: () => _toggle(i, slots.length - 1),
+                              onTap: () {
+                                _toggle(i, slots.length - 1);
+                                if (_capHit) {
+                                  _capHit = false;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content:
+                                          Text('You can book up to 2 hours.'),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              },
                             ),
                           ),
               ),
@@ -135,6 +158,37 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
   void _goCheckout() {
     final a = ref.read(amenityProvider(widget.amenityId)).value;
     if (a == null) return;
+
+    // Gate on the active-reservation limit here (clear dialog), rather than
+    // letting the server reject it with a toast after Reserve.
+    final myRes = ref.read(myReservationsProvider).value ?? const [];
+    final activeCount = myRes.where((r) => r.isUpcoming).length;
+    final maxActive = ref
+        .read(activeCommunityProvider)
+        .settings
+        .maxActiveReservationsPerUser;
+    if (activeCount >= maxActive) {
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          icon: Icon(Icons.event_busy,
+              color: Theme.of(dialogContext).colorScheme.error),
+          title: const Text('Reservation limit reached'),
+          content: Text(
+            'You already have $maxActive active reservation'
+            '${maxActive == 1 ? '' : 's'}. Cancel one in My Bookings to book '
+            'another.',
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Got it'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
     var slots = computeDaySlots(
         a,
         _day,

@@ -31,6 +31,14 @@
 
   <title>amenry</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    /* The Firebase Auth-emulator warning is a fixed bar pinned to the bottom of
+       the window; it covers the app's bottom navigation. Hide it for the demo.
+       (Remove when pointing at a real backend.) */
+    .firebase-emulator-warning { display: none !important; }
+    /* Ensure the Flutter view fills the window exactly (no stray scroll). */
+    html, body { height: 100%; margin: 0; overflow: hidden; }
+  </style>
 </head>
 <body>
   <!--
@@ -41,6 +49,35 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script src="flutter_bootstrap.js" async></script>
+  <!--
+    DEMO/EMULATOR FIX: Firebase Auth persists the session in an IndexedDB
+    ("firebaseLocalStorageDb"). On reload the SDK restores it and fires a
+    network call that can race the Auth-emulator binding, sending auth to
+    production ("something went wrong"). Clearing it before Flutter boots makes
+    emulator login deterministic. (Trade-off: you log in each visit — instant
+    via the demo chips.) Remove this block when pointing at a real backend.
+  -->
+  <script>
+    (function () {
+      var booted = false;
+      function boot() {
+        if (booted) return;
+        booted = true;
+        var s = document.createElement('script');
+        s.src = 'flutter_bootstrap.js';
+        s.async = true;
+        document.body.appendChild(s);
+      }
+      try {
+        var req = indexedDB.deleteDatabase('firebaseLocalStorageDb');
+        req.onsuccess = boot;
+        req.onerror = boot;
+        req.onblocked = boot;
+        setTimeout(boot, 600); // safety net
+      } catch (e) {
+        boot();
+      }
+    })();
+  </script>
 </body>
 </html>

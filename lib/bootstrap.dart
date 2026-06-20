@@ -21,6 +21,12 @@ String get _emulatorHost =>
         ? '10.0.2.2'
         : '127.0.0.1';
 
+/// Whether to point at the Firebase Emulator Suite. Defaults to true for this
+/// demo build (so release web builds used for QA also use the emulators).
+/// Override for a real backend with `--dart-define=USE_EMULATORS=false`.
+const bool _useEmulators =
+    bool.fromEnvironment('USE_EMULATORS', defaultValue: true);
+
 /// App entry pipeline: init timezones + Firebase, wire emulators in debug,
 /// then run inside a [ProviderScope]. Errors are caught so a failed Firebase
 /// connect (e.g. emulator not running) still boots the UI with demo branding.
@@ -32,7 +38,7 @@ Future<void> bootstrap() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    if (kDebugMode) {
+    if (_useEmulators) {
       await _connectEmulators();
     }
   } catch (e, s) {

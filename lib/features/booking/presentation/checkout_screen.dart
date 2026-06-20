@@ -8,8 +8,11 @@ import '../../../app/router/routes.dart';
 import '../../../shared/money/money.dart';
 import '../../amenities/data/amenity_repository.dart';
 import '../../auth/data/user_repository.dart';
+import '../../auth/domain/app_user.dart';
 import '../../community/application/tenant_providers.dart';
 import '../../payments/data/payment_repository.dart';
+import '../../payments/domain/payment_method.dart';
+import '../../payments/presentation/payment_methods_sheet.dart';
 import '../../reservations/data/reservation_repository.dart';
 import '../data/availability_repository.dart';
 
@@ -168,9 +171,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           ),
           bottomNavigationBar: _PayBar(
             totalCents: total,
-            cardLast4: user?.cardLast4,
+            card: user?.selectedCard,
             busy: _busy,
             onReserve: () => _reserve(subtotal, total),
+            onApplePay: () => _reserve(subtotal, total),
+            onChange: () => showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              showDragHandle: false,
+              builder: (_) => const PaymentMethodsSheet(),
+            ),
           ),
         );
       },
@@ -279,14 +289,18 @@ class _Rules extends StatelessWidget {
 class _PayBar extends StatelessWidget {
   const _PayBar({
     required this.totalCents,
-    required this.cardLast4,
+    required this.card,
     required this.busy,
     required this.onReserve,
+    required this.onChange,
+    required this.onApplePay,
   });
   final int totalCents;
-  final String? cardLast4;
+  final PaymentMethod? card;
   final bool busy;
   final VoidCallback onReserve;
+  final VoidCallback onChange;
+  final VoidCallback onApplePay;
 
   @override
   Widget build(BuildContext context) {
@@ -311,29 +325,50 @@ class _PayBar extends StatelessWidget {
                         ?.copyWith(fontWeight: FontWeight.bold)),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
+            // Selected card + Change
             Row(
               children: [
                 Icon(Icons.credit_card,
                     size: 18, color: theme.colorScheme.onSurfaceVariant),
                 const SizedBox(width: 8),
-                Text(
-                  cardLast4 != null ? '•••• $cardLast4' : 'Apple Pay',
-                  style: theme.textTheme.bodyMedium,
+                Expanded(
+                  child: Text(
+                    card != null
+                        ? '${card!.brand}  •••• ${card!.last4}'
+                        : 'No card on file',
+                    style: theme.textTheme.bodyMedium,
+                  ),
                 ),
+                TextButton(onPressed: onChange, child: const Text('Change')),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             FilledButton(
               onPressed: busy ? null : onReserve,
               style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(54)),
+                  minimumSize: const Size.fromHeight(52)),
               child: busy
                   ? const SizedBox(
                       height: 22,
                       width: 22,
                       child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('Reserve'),
+            ),
+            const SizedBox(height: 8),
+            // Apple Pay option (placeholder — uses the same stubbed flow).
+            SizedBox(
+              height: 48,
+              child: FilledButton.icon(
+                onPressed: busy ? null : onApplePay,
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.apple, size: 22),
+                label: const Text('Pay',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
             ),
           ],
         ),

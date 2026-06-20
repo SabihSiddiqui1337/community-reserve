@@ -43,7 +43,15 @@ async function ensureUser(
     }
   }
   await db.doc(`users/${uid}`).set(
-    { name, email, phone: "", photoUrl: null, fcmTokens: [], globalRole, cardLast4: "9293" },
+    {
+      name, email, phone: "", photoUrl: null, fcmTokens: [], globalRole,
+      paymentMethods: [
+        { id: "card_9293", brand: "Discover", last4: "9293" },
+        { id: "card_9672", brand: "Visa", last4: "9672" },
+        { id: "card_4872", brand: "Card", last4: "4872" },
+      ],
+      selectedCardId: "card_9293",
+    },
     { merge: true }
   );
 }
@@ -211,6 +219,8 @@ async function main(): Promise<void> {
 
   // Demo announcements for Maple Grove's Events tab.
   const ann = db.collection("communities/demo-hoa/announcements");
+  const existingAnn = await ann.get();
+  for (const d of existingAnn.docs) await d.ref.delete();
   const annData = [
     { title: "Welcome to Maple Grove!", body: "Book courts and the event hall right from the app. Questions? Reach out to the front office.", authorName: "Dana Director", type: "announcement", offset: 0 },
     { title: "Pickleball tournament — Saturday 10am", body: "Sign up at the clubhouse. Doubles bracket, prizes for the top 3 teams.", authorName: "Dana Director", type: "event", offset: 1 },

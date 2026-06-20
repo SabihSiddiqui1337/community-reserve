@@ -23,6 +23,20 @@ class AmenryApp extends ConsumerWidget {
       darkTheme: AppTheme.dark(branding),
       themeMode: AppTheme.modeFor(branding),
       routerConfig: router,
+      // Mobile-first: on wide screens (desktop browser), cap the app to a
+      // phone width and align it to the left, instead of stretching edge-to-edge.
+      builder: (context, child) {
+        return ColoredBox(
+          color: const Color(0xFF0A0806),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/firebase/firebase_providers.dart';
+import '../../payments/domain/payment_method.dart';
 import '../domain/app_user.dart';
 import 'auth_repository.dart';
 
@@ -34,9 +35,20 @@ class UserRepository {
         'fcmTokens': FieldValue.arrayUnion([token]),
       }, SetOptions(merge: true));
 
-  /// Store the last 4 digits of a card on file (demo — no real card data).
-  Future<void> setCardLast4(String uid, String last4) =>
-      _doc(uid).set({'cardLast4': last4}, SetOptions(merge: true));
+  /// Replace the user's saved cards (demo — last 4 only). Optionally set the
+  /// selected card id.
+  Future<void> setPaymentMethods(
+    String uid,
+    List<PaymentMethod> methods, {
+    String? selectedId,
+  }) =>
+      _doc(uid).set({
+        'paymentMethods': methods.map((m) => m.toJson()).toList(),
+        'selectedCardId': ?selectedId,
+      }, SetOptions(merge: true));
+
+  Future<void> selectCard(String uid, String cardId) =>
+      _doc(uid).set({'selectedCardId': cardId}, SetOptions(merge: true));
 }
 
 final userRepositoryProvider = Provider<UserRepository>(

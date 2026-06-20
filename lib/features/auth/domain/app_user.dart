@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../payments/domain/payment_method.dart';
+
 part 'app_user.freezed.dart';
 part 'app_user.g.dart';
 
@@ -15,9 +17,21 @@ abstract class AppUser with _$AppUser {
     String? photoUrl,
     @Default(<String>[]) List<String> fcmTokens,
     @Default('resident') String globalRole, // resident | superAdmin
-    String? cardLast4, // card-on-file (last 4 digits only; demo)
+    @Default(<PaymentMethod>[]) List<PaymentMethod> paymentMethods,
+    String? selectedCardId,
   }) = _AppUser;
 
   factory AppUser.fromJson(Map<String, dynamic> json) =>
       _$AppUserFromJson(json);
+}
+
+extension AppUserX on AppUser {
+  /// The chosen card on file, or the first one, or null.
+  PaymentMethod? get selectedCard {
+    if (paymentMethods.isEmpty) return null;
+    return paymentMethods.firstWhere(
+      (c) => c.id == selectedCardId,
+      orElse: () => paymentMethods.first,
+    );
+  }
 }

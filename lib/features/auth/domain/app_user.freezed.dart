@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AppUser {
 
- String get uid; String get name; String get email; String get phone; String? get photoUrl; List<String> get fcmTokens; String get globalRole; String? get cardLast4;
+ String get uid; String get name; String get email; String get phone; String? get photoUrl; List<String> get fcmTokens; String get globalRole; List<PaymentMethod> get paymentMethods; String? get selectedCardId;
 /// Create a copy of AppUser
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $AppUserCopyWith<AppUser> get copyWith => _$AppUserCopyWithImpl<AppUser>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppUser&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&const DeepCollectionEquality().equals(other.fcmTokens, fcmTokens)&&(identical(other.globalRole, globalRole) || other.globalRole == globalRole)&&(identical(other.cardLast4, cardLast4) || other.cardLast4 == cardLast4));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppUser&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&const DeepCollectionEquality().equals(other.fcmTokens, fcmTokens)&&(identical(other.globalRole, globalRole) || other.globalRole == globalRole)&&const DeepCollectionEquality().equals(other.paymentMethods, paymentMethods)&&(identical(other.selectedCardId, selectedCardId) || other.selectedCardId == selectedCardId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,uid,name,email,phone,photoUrl,const DeepCollectionEquality().hash(fcmTokens),globalRole,cardLast4);
+int get hashCode => Object.hash(runtimeType,uid,name,email,phone,photoUrl,const DeepCollectionEquality().hash(fcmTokens),globalRole,const DeepCollectionEquality().hash(paymentMethods),selectedCardId);
 
 @override
 String toString() {
-  return 'AppUser(uid: $uid, name: $name, email: $email, phone: $phone, photoUrl: $photoUrl, fcmTokens: $fcmTokens, globalRole: $globalRole, cardLast4: $cardLast4)';
+  return 'AppUser(uid: $uid, name: $name, email: $email, phone: $phone, photoUrl: $photoUrl, fcmTokens: $fcmTokens, globalRole: $globalRole, paymentMethods: $paymentMethods, selectedCardId: $selectedCardId)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $AppUserCopyWith<$Res>  {
   factory $AppUserCopyWith(AppUser value, $Res Function(AppUser) _then) = _$AppUserCopyWithImpl;
 @useResult
 $Res call({
- String uid, String name, String email, String phone, String? photoUrl, List<String> fcmTokens, String globalRole, String? cardLast4
+ String uid, String name, String email, String phone, String? photoUrl, List<String> fcmTokens, String globalRole, List<PaymentMethod> paymentMethods, String? selectedCardId
 });
 
 
@@ -65,7 +65,7 @@ class _$AppUserCopyWithImpl<$Res>
 
 /// Create a copy of AppUser
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? uid = null,Object? name = null,Object? email = null,Object? phone = null,Object? photoUrl = freezed,Object? fcmTokens = null,Object? globalRole = null,Object? cardLast4 = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? uid = null,Object? name = null,Object? email = null,Object? phone = null,Object? photoUrl = freezed,Object? fcmTokens = null,Object? globalRole = null,Object? paymentMethods = null,Object? selectedCardId = freezed,}) {
   return _then(_self.copyWith(
 uid: null == uid ? _self.uid : uid // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -74,7 +74,8 @@ as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to
 as String,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: cast_nullable_to_non_nullable
 as String?,fcmTokens: null == fcmTokens ? _self.fcmTokens : fcmTokens // ignore: cast_nullable_to_non_nullable
 as List<String>,globalRole: null == globalRole ? _self.globalRole : globalRole // ignore: cast_nullable_to_non_nullable
-as String,cardLast4: freezed == cardLast4 ? _self.cardLast4 : cardLast4 // ignore: cast_nullable_to_non_nullable
+as String,paymentMethods: null == paymentMethods ? _self.paymentMethods : paymentMethods // ignore: cast_nullable_to_non_nullable
+as List<PaymentMethod>,selectedCardId: freezed == selectedCardId ? _self.selectedCardId : selectedCardId // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -160,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String uid,  String name,  String email,  String phone,  String? photoUrl,  List<String> fcmTokens,  String globalRole,  String? cardLast4)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String uid,  String name,  String email,  String phone,  String? photoUrl,  List<String> fcmTokens,  String globalRole,  List<PaymentMethod> paymentMethods,  String? selectedCardId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AppUser() when $default != null:
-return $default(_that.uid,_that.name,_that.email,_that.phone,_that.photoUrl,_that.fcmTokens,_that.globalRole,_that.cardLast4);case _:
+return $default(_that.uid,_that.name,_that.email,_that.phone,_that.photoUrl,_that.fcmTokens,_that.globalRole,_that.paymentMethods,_that.selectedCardId);case _:
   return orElse();
 
 }
@@ -181,10 +182,10 @@ return $default(_that.uid,_that.name,_that.email,_that.phone,_that.photoUrl,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String uid,  String name,  String email,  String phone,  String? photoUrl,  List<String> fcmTokens,  String globalRole,  String? cardLast4)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String uid,  String name,  String email,  String phone,  String? photoUrl,  List<String> fcmTokens,  String globalRole,  List<PaymentMethod> paymentMethods,  String? selectedCardId)  $default,) {final _that = this;
 switch (_that) {
 case _AppUser():
-return $default(_that.uid,_that.name,_that.email,_that.phone,_that.photoUrl,_that.fcmTokens,_that.globalRole,_that.cardLast4);case _:
+return $default(_that.uid,_that.name,_that.email,_that.phone,_that.photoUrl,_that.fcmTokens,_that.globalRole,_that.paymentMethods,_that.selectedCardId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +202,10 @@ return $default(_that.uid,_that.name,_that.email,_that.phone,_that.photoUrl,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String uid,  String name,  String email,  String phone,  String? photoUrl,  List<String> fcmTokens,  String globalRole,  String? cardLast4)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String uid,  String name,  String email,  String phone,  String? photoUrl,  List<String> fcmTokens,  String globalRole,  List<PaymentMethod> paymentMethods,  String? selectedCardId)?  $default,) {final _that = this;
 switch (_that) {
 case _AppUser() when $default != null:
-return $default(_that.uid,_that.name,_that.email,_that.phone,_that.photoUrl,_that.fcmTokens,_that.globalRole,_that.cardLast4);case _:
+return $default(_that.uid,_that.name,_that.email,_that.phone,_that.photoUrl,_that.fcmTokens,_that.globalRole,_that.paymentMethods,_that.selectedCardId);case _:
   return null;
 
 }
@@ -216,7 +217,7 @@ return $default(_that.uid,_that.name,_that.email,_that.phone,_that.photoUrl,_tha
 @JsonSerializable()
 
 class _AppUser implements AppUser {
-  const _AppUser({required this.uid, this.name = '', this.email = '', this.phone = '', this.photoUrl, final  List<String> fcmTokens = const <String>[], this.globalRole = 'resident', this.cardLast4}): _fcmTokens = fcmTokens;
+  const _AppUser({required this.uid, this.name = '', this.email = '', this.phone = '', this.photoUrl, final  List<String> fcmTokens = const <String>[], this.globalRole = 'resident', final  List<PaymentMethod> paymentMethods = const <PaymentMethod>[], this.selectedCardId}): _fcmTokens = fcmTokens,_paymentMethods = paymentMethods;
   factory _AppUser.fromJson(Map<String, dynamic> json) => _$AppUserFromJson(json);
 
 @override final  String uid;
@@ -232,7 +233,14 @@ class _AppUser implements AppUser {
 }
 
 @override@JsonKey() final  String globalRole;
-@override final  String? cardLast4;
+ final  List<PaymentMethod> _paymentMethods;
+@override@JsonKey() List<PaymentMethod> get paymentMethods {
+  if (_paymentMethods is EqualUnmodifiableListView) return _paymentMethods;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_paymentMethods);
+}
+
+@override final  String? selectedCardId;
 
 /// Create a copy of AppUser
 /// with the given fields replaced by the non-null parameter values.
@@ -247,16 +255,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppUser&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&const DeepCollectionEquality().equals(other._fcmTokens, _fcmTokens)&&(identical(other.globalRole, globalRole) || other.globalRole == globalRole)&&(identical(other.cardLast4, cardLast4) || other.cardLast4 == cardLast4));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppUser&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&const DeepCollectionEquality().equals(other._fcmTokens, _fcmTokens)&&(identical(other.globalRole, globalRole) || other.globalRole == globalRole)&&const DeepCollectionEquality().equals(other._paymentMethods, _paymentMethods)&&(identical(other.selectedCardId, selectedCardId) || other.selectedCardId == selectedCardId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,uid,name,email,phone,photoUrl,const DeepCollectionEquality().hash(_fcmTokens),globalRole,cardLast4);
+int get hashCode => Object.hash(runtimeType,uid,name,email,phone,photoUrl,const DeepCollectionEquality().hash(_fcmTokens),globalRole,const DeepCollectionEquality().hash(_paymentMethods),selectedCardId);
 
 @override
 String toString() {
-  return 'AppUser(uid: $uid, name: $name, email: $email, phone: $phone, photoUrl: $photoUrl, fcmTokens: $fcmTokens, globalRole: $globalRole, cardLast4: $cardLast4)';
+  return 'AppUser(uid: $uid, name: $name, email: $email, phone: $phone, photoUrl: $photoUrl, fcmTokens: $fcmTokens, globalRole: $globalRole, paymentMethods: $paymentMethods, selectedCardId: $selectedCardId)';
 }
 
 
@@ -267,7 +275,7 @@ abstract mixin class _$AppUserCopyWith<$Res> implements $AppUserCopyWith<$Res> {
   factory _$AppUserCopyWith(_AppUser value, $Res Function(_AppUser) _then) = __$AppUserCopyWithImpl;
 @override @useResult
 $Res call({
- String uid, String name, String email, String phone, String? photoUrl, List<String> fcmTokens, String globalRole, String? cardLast4
+ String uid, String name, String email, String phone, String? photoUrl, List<String> fcmTokens, String globalRole, List<PaymentMethod> paymentMethods, String? selectedCardId
 });
 
 
@@ -284,7 +292,7 @@ class __$AppUserCopyWithImpl<$Res>
 
 /// Create a copy of AppUser
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? uid = null,Object? name = null,Object? email = null,Object? phone = null,Object? photoUrl = freezed,Object? fcmTokens = null,Object? globalRole = null,Object? cardLast4 = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? uid = null,Object? name = null,Object? email = null,Object? phone = null,Object? photoUrl = freezed,Object? fcmTokens = null,Object? globalRole = null,Object? paymentMethods = null,Object? selectedCardId = freezed,}) {
   return _then(_AppUser(
 uid: null == uid ? _self.uid : uid // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -293,7 +301,8 @@ as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to
 as String,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: cast_nullable_to_non_nullable
 as String?,fcmTokens: null == fcmTokens ? _self._fcmTokens : fcmTokens // ignore: cast_nullable_to_non_nullable
 as List<String>,globalRole: null == globalRole ? _self.globalRole : globalRole // ignore: cast_nullable_to_non_nullable
-as String,cardLast4: freezed == cardLast4 ? _self.cardLast4 : cardLast4 // ignore: cast_nullable_to_non_nullable
+as String,paymentMethods: null == paymentMethods ? _self._paymentMethods : paymentMethods // ignore: cast_nullable_to_non_nullable
+as List<PaymentMethod>,selectedCardId: freezed == selectedCardId ? _self.selectedCardId : selectedCardId // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

@@ -13,6 +13,9 @@ import '../../community/application/tenant_providers.dart';
 import '../data/reservation_repository.dart';
 import '../domain/reservation.dart';
 
+/// PIN/QR become visible this many minutes before the reservation starts.
+const _pinLeadMinutes = 10;
+
 class ReservationDetailScreen extends ConsumerStatefulWidget {
   const ReservationDetailScreen({super.key, required this.reservationId});
   final String reservationId;
@@ -30,7 +33,6 @@ class _ReservationDetailScreenState
   @override
   void initState() {
     super.initState();
-    // Rebuild every second for the live countdown.
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
@@ -55,7 +57,8 @@ class _ReservationDetailScreenState
       if (!mounted) return;
       final ok = res['valid'] == true;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ok ? 'Checked in — enjoy!' : 'Access denied: ${res['reason']}'),
+        content:
+            Text(ok ? 'Checked in — enjoy!' : 'Access denied: ${res['reason']}'),
       ));
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
@@ -70,19 +73,34 @@ class _ReservationDetailScreenState
   Future<void> _cancel(Reservation r) async {
     final cid = ref.read(currentCommunityIdProvider);
     if (cid == null) return;
+    // NOTE: use the dialog's own context for pop, not the screen's.
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Cancel reservation?'),
         content: const Text(
             'Cancelling close to the start time may count as a no-show.'),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Keep')),
-          FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Cancel it')),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Keep'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: Theme.of(dialogContext).colorScheme.error),
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text('Cancel it'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -92,11 +110,15 @@ class _ReservationDetailScreenState
       await ref
           .read(reservationRepositoryProvider)
           .cancel(communityId: cid, reservationId: r.id);
-      if (mounted) context.go(Routes.myBookings);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Reservation cancelled.')));
+        context.go(Routes.myBookings);
+      }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message ?? 'Failed')));
+            .showSnackBar(SnackBar(content: Text(e.message ?? 'Cancel failed')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -111,6 +133,7 @@ class _ReservationDetailScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Reservation'),
+        centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go(Routes.myBookings),
@@ -122,11 +145,10 @@ class _ReservationDetailScreenState
         data: (r) {
           if (r == null) return const Center(child: Text('Not found'));
           final amenity = ref.watch(amenityProvider(r.amenityId)).value;
-          final pin = pinCache[r.id];
           return _Body(
             reservation: r,
             amenityName: amenity?.name ?? 'Amenity',
-            pin: pin,
+            pin: pinCache[r.id],
             busy: _busy,
             onCheckIn: () => _checkIn(r),
             onCancel: () => _cancel(r),
@@ -158,55 +180,89 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final r = reservation;
-    final active = r.isActiveNow;
     final start = r.startTime;
     final end = r.endTime;
+    final now = DateTime.now();
+
+    final live = r.status == ReservationStatus.booked ||
+        r.status == ReservationStatus.checkedIn;
+    final pinOpensAt = start?.subtract(const Duration(minutes: _pinLeadMinutes));
+    final accessOpen = live &&
+        start != null &&
+        end != null &&
+        now.isAfter(pinOpensAt!) &&
+        now.isBefore(end);
+    final active = r.isActiveNow; // now within [start, end]
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
       children: [
-        Text(amenityName,
-            style: theme.textTheme.headlineSmall
-                ?.copyWith(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        _StatusChip(status: r.status),
-        const SizedBox(height: 8),
-        if (start != null)
-          Text(DateFormat('EEEE, MMM d · h:mm a').format(start) +
-              (end != null ? ' – ${DateFormat('h:mm a').format(end)}' : '')),
-        const SizedBox(height: 24),
+        // Header card
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(amenityName,
+                        style: theme.textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.bold)),
+                  ),
+                  _StatusChip(status: r.status),
+                ],
+              ),
+              const SizedBox(height: 10),
+              if (start != null)
+                _InfoLine(
+                  icon: Icons.event,
+                  text: DateFormat('EEEE, MMMM d').format(start),
+                ),
+              if (start != null && end != null)
+                _InfoLine(
+                  icon: Icons.schedule,
+                  text:
+                      '${DateFormat('h:mm a').format(start)} – ${DateFormat('h:mm a').format(end)}',
+                ),
+              if (r.court != null)
+                _InfoLine(icon: Icons.sports_tennis, text: 'Court ${r.court}'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
         _Countdown(start: start, end: end, active: active),
-        const SizedBox(height: 24),
-        if (active) ...[
+        const SizedBox(height: 16),
+
+        if (accessOpen) ...[
           _AccessPanel(qrToken: r.qrToken, pin: pin),
           const SizedBox(height: 16),
           if (r.status == ReservationStatus.booked)
             FilledButton.icon(
-              onPressed: busy ? null : onCheckIn,
-              icon: const Icon(Icons.login),
-              label: const Text('Check in'),
+              onPressed: (busy || !active) ? null : onCheckIn,
+              style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52)),
+              icon: const Icon(Icons.lock_open),
+              label: Text(active ? 'Check in' : 'Check in opens at start'),
             ),
-        ] else
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Icon(Icons.lock_clock, color: theme.colorScheme.primary),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                        'Your PIN and QR code unlock when your slot becomes active.'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        const SizedBox(height: 24),
+        ] else if (live)
+          _LockedAccessCard(pinOpensAt: pinOpensAt),
+
+        const SizedBox(height: 16),
         if (r.isUpcoming)
           OutlinedButton.icon(
             onPressed: busy ? null : onCancel,
-            icon: const Icon(Icons.cancel_outlined),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+              foregroundColor: theme.colorScheme.error,
+              side: BorderSide(color: theme.colorScheme.error),
+            ),
+            icon: const Icon(Icons.close),
             label: const Text('Cancel reservation'),
           ),
       ],
@@ -214,8 +270,30 @@ class _Body extends StatelessWidget {
   }
 }
 
+class _InfoLine extends StatelessWidget {
+  const _InfoLine({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Text(text, style: theme.textTheme.bodyMedium),
+        ],
+      ),
+    );
+  }
+}
+
 class _Countdown extends StatelessWidget {
-  const _Countdown({required this.start, required this.end, required this.active});
+  const _Countdown(
+      {required this.start, required this.end, required this.active});
   final DateTime? start;
   final DateTime? end;
   final bool active;
@@ -237,21 +315,29 @@ class _Countdown extends StatelessWidget {
       value = 'Ended';
     }
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-            colors: [theme.colorScheme.primary, theme.colorScheme.secondary]),
+          colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
+        ),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         children: [
-          Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.85))),
-          const SizedBox(height: 4),
+          Text(label.toUpperCase(),
+              style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  letterSpacing: 1.5,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
           Text(value,
               style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold)),
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold,
+                  fontFeatures: [FontFeature.tabularFigures()])),
         ],
       ),
     );
@@ -266,6 +352,46 @@ class _Countdown extends StatelessWidget {
   }
 }
 
+class _LockedAccessCard extends StatelessWidget {
+  const _LockedAccessCard({required this.pinOpensAt});
+  final DateTime? pinOpensAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final at = pinOpensAt != null
+        ? DateFormat('h:mm a').format(pinOpensAt!)
+        : 'shortly before start';
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.lock_clock, color: theme.colorScheme.primary, size: 28),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Access locked', style: theme.textTheme.titleMedium),
+                const SizedBox(height: 2),
+                Text(
+                  'Your PIN will show $_pinLeadMinutes minutes before your '
+                  'reservation starts — at $at.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _AccessPanel extends StatelessWidget {
   const _AccessPanel({required this.qrToken, required this.pin});
   final String? qrToken;
@@ -274,40 +400,58 @@ class _AccessPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Text('Your access', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 16),
-            if (qrToken != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: QrImageView(data: qrToken!, size: 180),
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: theme.colorScheme.primary, width: 1.5),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock_open, size: 18, color: theme.colorScheme.primary),
+              const SizedBox(width: 6),
+              Text('YOUR ACCESS',
+                  style: TextStyle(
+                      letterSpacing: 1.5,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.primary)),
+            ],
+          ),
+          const SizedBox(height: 18),
+          if (qrToken != null)
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
               ),
-            const SizedBox(height: 20),
-            Text('PIN', style: theme.textTheme.labelMedium),
-            const SizedBox(height: 4),
-            Text(
-              pin ?? '••••••',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                letterSpacing: 8,
-              ),
+              child: QrImageView(data: qrToken!, size: 190),
             ),
-            if (pin == null)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text('Shown on the device you booked from',
-                    style: theme.textTheme.bodySmall),
-              ),
-          ],
-        ),
+          const SizedBox(height: 22),
+          Text('PIN',
+              style: theme.textTheme.labelMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 6),
+          Text(
+            pin ?? '••••••',
+            style: theme.textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              letterSpacing: 10,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+          if (pin == null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text('Shown on the device you booked from',
+                  style: theme.textTheme.bodySmall),
+            ),
+        ],
       ),
     );
   }
@@ -327,11 +471,14 @@ class _StatusChip extends StatelessWidget {
       ReservationStatus.cancelled => ('Cancelled', Colors.grey),
       ReservationStatus.expired => ('Expired', Colors.grey),
     };
-    return Chip(
-      label: Text(label),
-      backgroundColor: color.withValues(alpha: 0.15),
-      labelStyle: TextStyle(color: color, fontWeight: FontWeight.w600),
-      side: BorderSide.none,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(label,
+          style: TextStyle(color: color, fontWeight: FontWeight.w600)),
     );
   }
 }
