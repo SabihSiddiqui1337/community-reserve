@@ -2,7 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { Timestamp } from "firebase-admin/firestore";
 
 import { paths } from "../lib/firebase";
-import { verifyPin } from "../domain/pin";
+import { verifyPin, generatePin, hashPin } from "../domain/pin";
 import { verifyQrToken } from "../domain/qrToken";
 
 /**
@@ -52,9 +52,19 @@ export const validateAccess = onCall(async (request) => {
     if (!ok) return { valid: false, reason: "bad-pin" };
   }
 
-  // First valid access = check-in (cancels the grace timer).
+  // First valid access = check-in (cancels the grace timer). Issue a fresh
+  // entry PIN now and return it so the app can display the real number — we
+  // still store only its hash.
   if (res.status === "booked") {
-    await ref.update({ status: "checkedIn", checkedInAt: Timestamp.now() });
+    const pin = generatePin();
+    const { pinHash, salt } = hashPin(pin);
+    await ref.update({
+      status: "checkedIn",
+      checkedInAt: Timestamp.now(),
+      pinHash,
+      salt,
+    });
+    return { valid: true, checkedIn: true, pin };
   }
   return { valid: true, checkedIn: true };
 });

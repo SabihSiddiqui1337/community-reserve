@@ -105,11 +105,11 @@ class _BookingsList extends StatelessWidget {
                 : null,
             leading: CircleAvatar(
               backgroundColor: active
-                  ? theme.colorScheme.secondary
+                  ? _activeGreen
                   : theme.colorScheme.primaryContainer,
               child: Icon(active ? Icons.lock_open : Icons.event,
                   color: active
-                      ? theme.colorScheme.onSecondary
+                      ? Colors.white
                       : theme.colorScheme.onPrimaryContainer),
             ),
             title: Text(nameFor(r.amenityId),
@@ -127,11 +127,15 @@ class _BookingsList extends StatelessWidget {
   }
 }
 
+// A clear "live now" green, distinct from the monochrome theme.
+const _activeGreen = Color(0xFF22C55E);
+
 Widget _trailing(ThemeData theme, ReservationStatus status, bool active) {
   if (active) {
     return Chip(
-      label: const Text('Active'),
-      backgroundColor: theme.colorScheme.secondaryContainer,
+      label: const Text('Active',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+      backgroundColor: _activeGreen,
       side: BorderSide.none,
     );
   }

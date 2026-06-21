@@ -50,7 +50,7 @@ class BrandLogo extends StatelessWidget {
       child: Text(
         label.isNotEmpty ? label[0].toUpperCase() : '?',
         style: TextStyle(
-          color: Colors.white,
+          color: scheme.onPrimary,
           fontSize: size * 0.42,
           fontWeight: FontWeight.bold,
         ),

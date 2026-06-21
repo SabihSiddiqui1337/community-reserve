@@ -10,8 +10,8 @@ part 'community.g.dart';
 abstract class Branding with _$Branding {
   const factory Branding({
     String? logoUrl,
-    @Default('#7C5CFF') String primaryColor, // electric violet
-    @Default('#34E5C4') String accentColor, // neon teal
+    @Default('#FFFFFF') String primaryColor, // white (mono B&W)
+    @Default('#C7CBD1') String accentColor, // soft grey
     String? backgroundUrl,
     @Default('dark') String theme, // 'dark' | 'light'
   }) = _Branding;
@@ -77,8 +77,8 @@ abstract class Community with _$Community {
         address: '100 Maplewood Dr, Austin, TX',
         timezone: 'America/Chicago',
         branding: Branding(
-          primaryColor: '#7C5CFF',
-          accentColor: '#34E5C4',
+          primaryColor: '#FFFFFF',
+          accentColor: '#C7CBD1',
           theme: 'dark',
         ),
         featureFlags: FeatureFlags(waitlistEnabled: true),

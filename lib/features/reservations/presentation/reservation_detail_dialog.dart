@@ -63,10 +63,18 @@ class _ReservationDetailDialogState
           );
       if (!mounted) return;
       final ok = res['valid'] == true;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content:
-            Text(ok ? 'Checked in — enjoy!' : 'Access denied: ${res['reason']}'),
-      ));
+      if (ok) {
+        // Stash the freshly-issued PIN so the panel shows the real number.
+        final pin = res['pin'] as String?;
+        if (pin != null) {
+          ref.read(pinCacheProvider.notifier).put(r.id, pin);
+        }
+        // No success toast — the PIN panel appearing is the confirmation.
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Access denied: ${res['reason']}')),
+        );
+      }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -411,17 +419,17 @@ class _Countdown extends StatelessWidget {
         children: [
           Text(label.toUpperCase(),
               style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.85),
+                  color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
                   letterSpacing: 1.5,
                   fontSize: 12,
                   fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
           Text(value,
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: theme.colorScheme.onPrimary,
                   fontSize: 38,
                   fontWeight: FontWeight.bold,
-                  fontFeatures: [FontFeature.tabularFigures()])),
+                  fontFeatures: const [FontFeature.tabularFigures()])),
         ],
       ),
     );
@@ -509,9 +517,7 @@ class _AccessPanel extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            pin == null
-                ? 'Shown on the device you booked from'
-                : 'Enter this PIN at the door',
+            pin == null ? 'Fetching your PIN…' : 'Enter this PIN at the door',
             style: theme.textTheme.bodySmall
                 ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),

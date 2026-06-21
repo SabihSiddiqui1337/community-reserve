@@ -73,6 +73,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             court: _court,
           );
       ref.read(pinCacheProvider.notifier).put(res.reservationId, res.pin);
+      // The slot is now taken — drop cached availability so it refetches fresh.
+      ref.invalidate(dayAvailabilityProvider);
       // Remind the user to check in 10 minutes before the reservation starts.
       await LocalNotifications.scheduleCheckInReminder(
         reservationId: res.reservationId,
