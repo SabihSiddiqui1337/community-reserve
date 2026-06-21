@@ -19,8 +19,14 @@ import '../../features/booking/presentation/slot_screen.dart';
 import '../../features/booking/presentation/sport_picker_screen.dart';
 import '../../features/community/presentation/join_community_screen.dart';
 import '../../features/events/presentation/events_screen.dart';
+import '../../features/notifications/presentation/notifications_screen.dart';
+import '../../features/payments/presentation/payment_info_screen.dart';
+import '../../features/profile/presentation/account_info_screen.dart';
+import '../../features/profile/presentation/account_screen.dart';
+import '../../features/profile/presentation/edit_profile_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/reservations/presentation/my_bookings_screen.dart';
+import '../../features/reservations/presentation/reservation_deeplink_screen.dart';
 import '../../features/residency/presentation/residency_status_screen.dart';
 import '../../features/residency/presentation/residency_verification_screen.dart';
 import '../shell/main_shell.dart';
@@ -153,6 +159,26 @@ final routerProvider = Provider<GoRouter>((ref) {
           ]),
         ],
       ),
+
+      GoRoute(
+          path: Routes.notifications,
+          builder: (_, _) => const NotificationsScreen()),
+      GoRoute(
+          path: Routes.reservationDetail,
+          builder: (_, state) => ReservationDeepLinkScreen(
+              reservationId: state.pathParameters['id']!)),
+
+      // Account pages — full screen (no bottom tab bar), reached from Profile.
+      GoRoute(path: Routes.account, builder: (_, _) => const AccountScreen()),
+      GoRoute(
+          path: Routes.accountInfo,
+          builder: (_, _) => const AccountInfoScreen()),
+      GoRoute(
+          path: Routes.editProfile,
+          builder: (_, _) => const EditProfileScreen()),
+      GoRoute(
+          path: Routes.paymentInfo,
+          builder: (_, _) => const PaymentInfoScreen()),
 
       // Checkout — full screen (no bottom tab bar), matching the reference.
       GoRoute(

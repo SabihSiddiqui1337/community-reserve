@@ -15,6 +15,9 @@ abstract class AppNotification with _$AppNotification {
     @Default('') String body,
     @Default('general') String type,
     @Default(false) bool read,
+    // Deep-link target for a notification tap (e.g. '/book/slots/{amenityId}').
+    String? route,
+    String? amenityId,
     @TimestampConverter() DateTime? createdAt,
   }) = _AppNotification;
 

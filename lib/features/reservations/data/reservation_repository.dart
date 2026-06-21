@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/services/firebase/firebase_providers.dart';
 import '../../auth/data/auth_repository.dart';
@@ -103,15 +104,16 @@ class ReservationRepository {
     return result.data;
   }
 
-  Future<void> cancel({
+  Future<Map<String, dynamic>> cancel({
     required String communityId,
     required String reservationId,
   }) async {
     final callable = _functions.httpsCallable('cancelReservation');
-    await callable.call<Map<String, dynamic>>({
+    final result = await callable.call<Map<String, dynamic>>({
       'communityId': communityId,
       'reservationId': reservationId,
     });
+    return Map<String, dynamic>.from(result.data);
   }
 }
 
@@ -145,14 +147,34 @@ final allReservationsProvider = StreamProvider<List<Reservation>>((ref) {
   return ref.watch(reservationRepositoryProvider).watchAll(cid);
 });
 
-/// In-memory cache of one-time PINs returned at booking, keyed by reservation
-/// id. The raw PIN is never persisted server-side (only its hash), so this is
-/// how the detail screen can reveal it during the active window this session.
+/// Cache of one-time PINs returned at booking, keyed by reservation id. The raw
+/// PIN is never persisted server-side (only its hash), so the booking device
+/// keeps its own copy — persisted to local storage so it survives app restarts
+/// and can be revealed on check-in.
 class PinCache extends Notifier<Map<String, String>> {
+  static const _prefix = 'pin_';
+
   @override
-  Map<String, String> build() => {};
-  void put(String reservationId, String pin) =>
-      state = {...state, reservationId: pin};
+  Map<String, String> build() {
+    _loadFromDisk();
+    return {};
+  }
+
+  Future<void> _loadFromDisk() async {
+    final prefs = await SharedPreferences.getInstance();
+    final entries = <String, String>{
+      for (final k in prefs.getKeys())
+        if (k.startsWith(_prefix))
+          k.substring(_prefix.length): prefs.getString(k) ?? '',
+    };
+    if (entries.isNotEmpty) state = {...entries, ...state};
+  }
+
+  void put(String reservationId, String pin) {
+    state = {...state, reservationId: pin};
+    SharedPreferences.getInstance()
+        .then((p) => p.setString('$_prefix$reservationId', pin));
+  }
 }
 
 final pinCacheProvider =

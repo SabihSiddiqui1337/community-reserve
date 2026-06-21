@@ -17,6 +17,15 @@ class Routes {
   static const book = '/book';
   static const myBookings = '/bookings';
   static const profile = '/profile';
+  static const notifications = '/notifications';
+  static const reservationDetail = '/reservation/:id';
+  static String reservationDetailTo(String id) => '/reservation/$id';
+
+  // Account (full-screen pages reached from Profile)
+  static const account = '/account';
+  static const accountInfo = '/account/info';
+  static const editProfile = '/account/info/edit';
+  static const paymentInfo = '/account/payment';
 
   // Book flow. Slots live in the Book branch (with tabs); checkout is a
   // full-screen route (no tab bar), matching the reference.

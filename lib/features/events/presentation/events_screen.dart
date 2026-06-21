@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/widgets/branded_background.dart';
+import '../../../shared/dialogs/confirm.dart';
 import '../../auth/data/user_repository.dart';
 import '../../community/application/tenant_providers.dart';
 import '../data/announcement_repository.dart';
 import '../domain/announcement.dart';
+import 'announcement_detail_screen.dart';
 
 class EventsScreen extends ConsumerWidget {
   const EventsScreen({super.key});
@@ -82,37 +85,62 @@ class EventsScreen extends ConsumerWidget {
     final posted = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('New announcement',
-                style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 16),
-            TextField(
-              controller: titleCtl,
-              decoration: const InputDecoration(labelText: 'Title'),
+      isDismissible: false, // close only via the X (with a discard prompt)
+      enableDrag: false,
+      builder: (context) {
+        Future<void> close() async {
+          final dirty = titleCtl.text.trim().isNotEmpty ||
+              bodyCtl.text.trim().isNotEmpty;
+          if (dirty && !await confirmDiscard(context)) return;
+          if (context.mounted) Navigator.pop(context, false);
+        }
+
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) close();
+          },
+          child: Padding(
+            padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('New announcement',
+                          style: Theme.of(context).textTheme.titleLarge),
+                    ),
+                    IconButton(
+                        icon: const Icon(Icons.close), onPressed: close),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: titleCtl,
+                  decoration: const InputDecoration(labelText: 'Title'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: bodyCtl,
+                  maxLines: 4,
+                  decoration: const InputDecoration(labelText: 'Message'),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Post'),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: bodyCtl,
-              maxLines: 4,
-              decoration: const InputDecoration(labelText: 'Message'),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Post'),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
     if (posted != true) return;
     final cid = ref.read(currentCommunityIdProvider);
@@ -130,47 +158,140 @@ class EventsScreen extends ConsumerWidget {
   }
 }
 
-class _AnnouncementCard extends StatelessWidget {
+class _AnnouncementCard extends ConsumerWidget {
   const _AnnouncementCard({required this.announcement});
   final Announcement announcement;
 
+  void _open(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => AnnouncementDetailScreen(announcement: announcement),
+    ));
+  }
+
+  Future<bool> _confirmDelete(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete this post?'),
+        content: Text('"${announcement.title}" will be removed for everyone.'),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Keep'),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(ctx).colorScheme.error),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Delete'),
+            ),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final isAdmin = ref.watch(isAdminProvider);
     final a = announcement;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    final isEvent = a.type == 'event';
+    final isLong = a.body.length > 120;
+
+    final card = Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => _open(context),
+        child: Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.campaign, color: theme.colorScheme.primary, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(a.title,
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    Icon(isEvent ? Icons.event : Icons.campaign,
+                        color: theme.colorScheme.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(a.title,
+                          style: theme.textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                    ),
+                    if (a.createdAt != null)
+                      Text(DateFormat('MMM d').format(a.createdAt!),
+                          style: theme.textTheme.bodySmall),
+                  ],
                 ),
-                if (a.createdAt != null)
-                  Text(DateFormat('MMM d').format(a.createdAt!),
-                      style: theme.textTheme.bodySmall),
+                if (a.body.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    a.body,
+                    style: theme.textTheme.bodyMedium,
+                    maxLines: isLong ? 3 : null,
+                    overflow: isLong ? TextOverflow.ellipsis : null,
+                  ),
+                  if (isLong)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text('more…',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                ],
+                if (a.authorName.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text('— ${a.authorName}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant)),
+                ],
               ],
             ),
-            if (a.body.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(a.body, style: theme.textTheme.bodyMedium),
-            ],
-            if (a.authorName.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Text('— ${a.authorName}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant)),
-            ],
-          ],
+          ),
         ),
       ),
+    );
+
+    if (!isAdmin) return card;
+
+    // Admins: swipe left to reveal a delete action; tapping it asks to confirm
+    // (no dialog appears until the delete button is pressed).
+    return Slidable(
+      key: ValueKey('ann_${a.id}'),
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.28,
+        children: [
+          SlidableAction(
+            onPressed: (_) async {
+              if (!await _confirmDelete(context)) return;
+              final cid = ref.read(currentCommunityIdProvider);
+              if (cid != null) {
+                await ref
+                    .read(announcementRepositoryProvider)
+                    .delete(cid, a.id);
+              }
+            },
+            backgroundColor: theme.colorScheme.error,
+            foregroundColor: theme.colorScheme.onError,
+            icon: Icons.delete,
+            label: 'Delete',
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ],
+      ),
+      child: card,
     );
   }
 }

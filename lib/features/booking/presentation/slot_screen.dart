@@ -7,8 +7,10 @@ import '../../../app/router/routes.dart';
 import '../../../shared/money/money.dart';
 import '../../amenities/data/amenity_repository.dart';
 import '../../community/application/tenant_providers.dart';
+import '../../notifications/data/local_notification_service.dart';
 import '../../reservations/data/reservation_repository.dart';
 import '../../reservations/domain/reservation.dart';
+import '../../waitlist/data/waitlist_repository.dart';
 import '../data/availability_repository.dart';
 import '../domain/availability.dart';
 
@@ -104,8 +106,20 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
           // Only future times for today.
           if (_isToday(_day)) {
             final now = DateTime.now();
-            slots = slots.where((s) => s.start.isAfter(now)).toList();
+            slots = slots
+                .where((s) => s.end
+                    .subtract(const Duration(minutes: 10))
+                    .isAfter(now))
+                .toList();
           }
+
+          // Slots this user has already asked to be notified about.
+          final waitlist = ref.watch(myWaitlistProvider).value ?? const [];
+          final waitlistedStarts = <DateTime>{
+            for (final w in waitlist)
+              if (w.amenityId == a.id && w.desiredStart != null)
+                w.desiredStart!,
+          };
 
           return Column(
             children: [
@@ -130,6 +144,9 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
                             itemBuilder: (context, i) => _SlotRow(
                               slot: slots[i],
                               selected: _selected.contains(i),
+                              waitlisted:
+                                  waitlistedStarts.contains(slots[i].start),
+                              onNotify: () => _notify(slots[i]),
                               onTap: () {
                                 _toggle(i, slots.length - 1);
                                 if (_capHit) {
@@ -158,6 +175,51 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
               onCheckout: () => _goCheckout(),
             ),
     );
+  }
+
+  /// Join the waitlist for a fully-booked slot so the user is notified the
+  /// moment it frees up (server pings the FIFO waitlist on cancellation).
+  Future<void> _notify(Slot slot) async {
+    final cid = ref.read(currentCommunityIdProvider);
+    if (cid == null) return;
+    final community = ref.read(activeCommunityProvider);
+    final amenity = ref.read(amenityProvider(widget.amenityId)).value;
+    final time = DateFormat('h:mm a').format(slot.start);
+    try {
+      await ref.read(waitlistRepositoryProvider).join(
+            communityId: cid,
+            amenityId: widget.amenityId,
+            desiredStart: slot.start,
+            desiredEnd: slot.end,
+          );
+
+      // DEMO: also fire a local notification in ~5s so the deep-link flow can
+      // be verified on-device without a real push backend. Remove this block
+      // (and LocalNotifications) once real push is wired up.
+      await LocalNotifications.scheduleDemoSlotOpen(
+        title: '${amenity?.name ?? 'Your court'} is now available',
+        body:
+            'Your $time slot just opened up. Tap to book it before someone else grabs it.',
+        route: Routes.bookSlotsTo(widget.amenityId),
+        timezoneName: community.timezone,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                "We'll notify you when the $time slot opens. (Demo: alert in ~5s — you can close the app.)"),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Couldn't set up the notification.")),
+        );
+      }
+    }
   }
 
   int _priceForSelection() {
@@ -208,7 +270,10 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
             const []);
     if (_isToday(_day)) {
       final now = DateTime.now();
-      slots = slots.where((s) => s.start.isAfter(now)).toList();
+      slots = slots
+          .where(
+              (s) => s.end.subtract(const Duration(minutes: 10)).isAfter(now))
+          .toList();
     }
     final picked = _selected.map((i) => slots[i]).toList()
       ..sort((x, y) => x.start.compareTo(y.start));
@@ -282,11 +347,18 @@ class _DateStrip extends StatelessWidget {
 }
 
 class _SlotRow extends StatelessWidget {
-  const _SlotRow(
-      {required this.slot, required this.selected, required this.onTap});
+  const _SlotRow({
+    required this.slot,
+    required this.selected,
+    required this.onTap,
+    required this.waitlisted,
+    required this.onNotify,
+  });
   final Slot slot;
   final bool selected;
   final VoidCallback onTap;
+  final bool waitlisted;
+  final VoidCallback onNotify;
 
   @override
   Widget build(BuildContext context) {
@@ -337,15 +409,37 @@ class _SlotRow extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  full ? '' : availLabel,
+                  full
+                      ? (waitlisted ? "We'll notify you" : '')
+                      : availLabel,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: selected
                         ? theme.colorScheme.onPrimary
-                        : theme.colorScheme.onSurface,
+                        : full && waitlisted
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurface,
+                    fontWeight:
+                        full && waitlisted ? FontWeight.w600 : null,
                   ),
                 ),
               ),
-              if (!full)
+              if (full)
+                // Bell: ask to be notified when this slot frees up.
+                IconButton(
+                  tooltip: waitlisted
+                      ? "You'll be notified"
+                      : 'Notify me when available',
+                  onPressed: waitlisted ? null : onNotify,
+                  icon: Icon(
+                    waitlisted
+                        ? Icons.notifications_active
+                        : Icons.notification_add_outlined,
+                    color: waitlisted
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                )
+              else
                 Icon(
                   selected ? Icons.check_box : Icons.check_box_outline_blank,
                   color: selected

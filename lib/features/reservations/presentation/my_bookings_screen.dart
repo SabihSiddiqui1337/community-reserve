@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,11 +11,34 @@ import '../data/reservation_repository.dart';
 import '../domain/reservation.dart';
 import 'reservation_detail_dialog.dart';
 
-class MyBookingsScreen extends ConsumerWidget {
+class MyBookingsScreen extends ConsumerStatefulWidget {
   const MyBookingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyBookingsScreen> createState() => _MyBookingsScreenState();
+}
+
+class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    // Re-evaluate isUpcoming over time so a reservation that just ended moves
+    // from Upcoming to History without a manual refresh.
+    _ticker = Timer.periodic(const Duration(seconds: 20), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final reservations = ref.watch(myReservationsProvider);
     final amenities = ref.watch(amenitiesProvider).value ?? const [];
 

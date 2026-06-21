@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/firebase/firebase_providers.dart';
@@ -8,9 +11,10 @@ import 'auth_repository.dart';
 
 /// Reads/writes the global `users/{uid}` profile.
 class UserRepository {
-  UserRepository(this._db);
+  UserRepository(this._db, this._storage);
 
   final FirebaseFirestore _db;
+  final FirebaseStorage _storage;
 
   DocumentReference<Map<String, dynamic>> _doc(String uid) =>
       _db.collection('users').doc(uid);
@@ -49,10 +53,39 @@ class UserRepository {
 
   Future<void> selectCard(String uid, String cardId) =>
       _doc(uid).set({'selectedCardId': cardId}, SetOptions(merge: true));
+
+  /// Update editable profile fields. Only non-null values are written.
+  Future<void> updateProfile(
+    String uid, {
+    String? name,
+    String? email,
+    String? phone,
+    String? photoUrl,
+  }) =>
+      _doc(uid).set({
+        'name': ?name,
+        'email': ?email,
+        'phone': ?phone,
+        'photoUrl': ?photoUrl,
+      }, SetOptions(merge: true));
+
+  /// Upload a profile photo to `users/{uid}/avatar.jpg`, return its URL.
+  Future<String> uploadAvatar(
+    String uid,
+    Uint8List bytes, {
+    String contentType = 'image/jpeg',
+  }) async {
+    final ref = _storage.ref().child('users/$uid/avatar.jpg');
+    await ref.putData(bytes, SettableMetadata(contentType: contentType));
+    return ref.getDownloadURL();
+  }
 }
 
 final userRepositoryProvider = Provider<UserRepository>(
-  (ref) => UserRepository(ref.watch(firestoreProvider)),
+  (ref) => UserRepository(
+    ref.watch(firestoreProvider),
+    ref.watch(firebaseStorageProvider),
+  ),
 );
 
 /// The signed-in user's profile, streamed.

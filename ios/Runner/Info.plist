@@ -13,6 +13,13 @@
 	<!-- DEV ONLY: required so iOS lets the app reach the Mac's LAN IP. -->
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Amenry connects to the local Firebase emulator on your network during development.</string>
+	<!-- Required so picking a profile photo from the camera / library doesn't crash. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Amenry uses your camera to take a profile photo.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Amenry lets you choose a profile photo from your library.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Amenry may use the microphone when capturing video.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

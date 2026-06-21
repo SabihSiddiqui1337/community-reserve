@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../community/application/tenant_providers.dart';
 import '../data/auth_repository.dart';
 import '../data/user_repository.dart';
 import '../domain/app_user.dart';
@@ -31,7 +32,13 @@ class AuthController extends Notifier<AsyncValue<void>> {
     return !state.hasError;
   }
 
-  Future<void> signOut() => ref.read(authRepositoryProvider).signOut();
+  Future<void> signOut() async {
+    await ref.read(authRepositoryProvider).signOut();
+    // Drop the previous user's cached streams so the next sign-in loads fresh
+    // instead of resolving on top of stale membership/profile data.
+    ref.invalidate(userMembershipsProvider);
+    ref.invalidate(currentUserProvider);
+  }
 }
 
 final authControllerProvider =

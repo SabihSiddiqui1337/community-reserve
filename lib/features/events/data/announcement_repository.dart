@@ -20,6 +20,8 @@ class AnnouncementRepository {
 
   Future<void> post(String cid, Announcement a) =>
       _col(cid).add(a.toJson()..remove('id')..['createdAt'] = Timestamp.now());
+
+  Future<void> delete(String cid, String id) => _col(cid).doc(id).delete();
 }
 
 final announcementRepositoryProvider = Provider<AnnouncementRepository>(

@@ -4,11 +4,12 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../shared/money/money.dart';
 import '../../amenities/data/amenity_repository.dart';
 import '../../community/application/tenant_providers.dart';
 import '../data/reservation_repository.dart';
+import '../domain/refund.dart';
 import '../domain/reservation.dart';
 
 /// PIN/QR become visible this many minutes before the reservation starts.
@@ -59,7 +60,6 @@ class _ReservationDetailDialogState
       final res = await ref.read(reservationRepositoryProvider).validateAccess(
             communityId: cid,
             reservationId: r.id,
-            qrToken: r.qrToken,
           );
       if (!mounted) return;
       final ok = res['valid'] == true;
@@ -80,12 +80,28 @@ class _ReservationDetailDialogState
   Future<void> _cancel(Reservation r) async {
     final cid = ref.read(currentCommunityIdProvider);
     if (cid == null) return;
+
+    // Estimate the prorated refund (basketball/pickleball only) to show before
+    // confirming. The server recomputes the authoritative amount.
+    final amenity = ref.read(amenityProvider(r.amenityId)).value;
+    int refundEstimate = 0;
+    if (amenity != null && r.startTime != null && r.endTime != null) {
+      refundEstimate = proratedRefundCents(
+        amenityType: amenity.type,
+        amountCentsPerHour: amenity.pricing.amountCents,
+        start: r.startTime!,
+        end: r.endTime!,
+      );
+    }
+    final refundLine = refundEstimate > 0
+        ? "You'll be refunded about ${Money.format(refundEstimate)} for the time remaining."
+        : 'Cancelling close to the start time may count as a no-show.';
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Cancel reservation?'),
-        content: const Text(
-            'Cancelling close to the start time may count as a no-show.'),
+        content: Text(refundLine),
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           Row(
@@ -114,13 +130,19 @@ class _ReservationDetailDialogState
     if (confirm != true) return;
     setState(() => _busy = true);
     try {
-      await ref
+      final result = await ref
           .read(reservationRepositoryProvider)
           .cancel(communityId: cid, reservationId: r.id);
+      final refunded = (result['refundCents'] as num?)?.toInt() ?? 0;
       if (mounted) {
         Navigator.of(context).pop(); // close the detail dialog
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Reservation cancelled.')));
+          SnackBar(
+            content: Text(refunded > 0
+                ? 'Reservation cancelled. ${Money.format(refunded)} refunded.'
+                : 'Reservation cancelled.'),
+          ),
+        );
       }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
@@ -137,6 +159,9 @@ class _ReservationDetailDialogState
     final theme = Theme.of(context);
     final reservation = ref.watch(reservationProvider(widget.reservationId));
     final pinCache = ref.watch(pinCacheProvider);
+    final headerName = reservation.value != null
+        ? ref.watch(amenityProvider(reservation.value!.amenityId)).value?.name
+        : null;
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -149,8 +174,11 @@ class _ReservationDetailDialogState
               padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
               child: Row(
                 children: [
-                  Text('Reservation', style: theme.textTheme.titleLarge),
-                  const Spacer(),
+                  Expanded(
+                    child: Text(headerName ?? 'Reservation',
+                        style: theme.textTheme.titleLarge,
+                        overflow: TextOverflow.ellipsis),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.of(context).pop(),
@@ -267,23 +295,41 @@ class _Body extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        _Countdown(start: start, end: end, active: active),
+        _Countdown(
+            start: start,
+            end: end,
+            active: active,
+            checkedIn: r.status == ReservationStatus.checkedIn),
         const SizedBox(height: 14),
-        if (accessOpen) ...[
-          _AccessPanel(qrToken: r.qrToken, pin: pin),
-          const SizedBox(height: 14),
-          if (r.status == ReservationStatus.booked)
-            FilledButton.icon(
-              onPressed: (busy || !active) ? null : onCheckIn,
-              style:
-                  FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-              icon: const Icon(Icons.lock_open),
-              label: Text(active ? 'Check in' : 'Check in opens at start'),
-            ),
-        ] else if (liveStatus)
+        if (accessOpen && r.status == ReservationStatus.checkedIn) ...[
+          // Checked in → reveal the PIN (no QR/barcode anymore).
+          _AccessPanel(pin: pin),
+        ] else if (accessOpen && r.status == ReservationStatus.booked) ...[
+          // Within the 10-min window → can check in now; PIN appears only after.
+          FilledButton.icon(
+            onPressed: busy ? null : onCheckIn,
+            style:
+                FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+            icon: const Icon(Icons.lock_open),
+            label: const Text('Check in'),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your PIN appears here once you check in.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ] else if (liveStatus &&
+            pinOpensAt != null &&
+            now.isBefore(pinOpensAt)) ...[
+          // Genuinely before the access window opens (and not ended).
           _LockedAccessCard(pinOpensAt: pinOpensAt),
-        const SizedBox(height: 14),
-        if (r.isUpcoming)
+        ],
+        // Cancel is allowed only before check-in. Once checked in / code used,
+        // it's hidden.
+        if (r.status == ReservationStatus.booked && r.isUpcoming) ...[
+          const SizedBox(height: 14),
           OutlinedButton.icon(
             onPressed: busy ? null : onCancel,
             style: OutlinedButton.styleFrom(
@@ -294,6 +340,7 @@ class _Body extends StatelessWidget {
             icon: const Icon(Icons.close),
             label: const Text('Cancel reservation'),
           ),
+        ],
       ],
     );
   }
@@ -322,10 +369,14 @@ class _InfoLine extends StatelessWidget {
 
 class _Countdown extends StatelessWidget {
   const _Countdown(
-      {required this.start, required this.end, required this.active});
+      {required this.start,
+      required this.end,
+      required this.active,
+      required this.checkedIn});
   final DateTime? start;
   final DateTime? end;
   final bool active;
+  final bool checkedIn;
 
   @override
   Widget build(BuildContext context) {
@@ -333,7 +384,11 @@ class _Countdown extends StatelessWidget {
     final now = DateTime.now();
     String label;
     String value;
-    if (active && end != null) {
+    if (checkedIn && end != null && now.isBefore(end!)) {
+      // After check-in: show time left in the reservation, not "starts in".
+      label = 'Time remaining';
+      value = _fmt(end!.difference(now));
+    } else if (active && end != null) {
       label = 'Time remaining';
       value = _fmt(end!.difference(now));
     } else if (start != null && start!.isAfter(now)) {
@@ -422,15 +477,14 @@ class _LockedAccessCard extends StatelessWidget {
 }
 
 class _AccessPanel extends StatelessWidget {
-  const _AccessPanel({required this.qrToken, required this.pin});
-  final String? qrToken;
+  const _AccessPanel({required this.pin});
   final String? pin;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(18),
@@ -438,41 +492,29 @@ class _AccessPanel extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text('YOUR ACCESS',
+          Text('YOUR ENTRY PIN',
               style: TextStyle(
                   letterSpacing: 1.5,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: theme.colorScheme.primary)),
-          const SizedBox(height: 16),
-          if (qrToken != null)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: QrImageView(data: qrToken!, size: 170),
-            ),
-          const SizedBox(height: 18),
-          Text('PIN',
-              style: theme.textTheme.labelMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
           Text(
-            pin ?? '••••••',
-            style: theme.textTheme.headlineMedium?.copyWith(
+            pin ?? '••••',
+            style: theme.textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.bold,
-              letterSpacing: 8,
+              letterSpacing: 10,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
-          if (pin == null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text('Shown on the device you booked from',
-                  style: theme.textTheme.bodySmall),
-            ),
+          const SizedBox(height: 6),
+          Text(
+            pin == null
+                ? 'Shown on the device you booked from'
+                : 'Enter this PIN at the door',
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
         ],
       ),
     );

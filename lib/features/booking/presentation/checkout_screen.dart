@@ -10,8 +10,10 @@ import '../../amenities/data/amenity_repository.dart';
 import '../../auth/data/user_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../community/application/tenant_providers.dart';
+import '../../notifications/data/local_notification_service.dart';
 import '../../payments/data/payment_repository.dart';
 import '../../payments/domain/payment_method.dart';
+import '../../payments/presentation/add_payment_sheet.dart';
 import '../../payments/presentation/payment_methods_sheet.dart';
 import '../../reservations/data/reservation_repository.dart';
 import '../data/availability_repository.dart';
@@ -42,11 +44,19 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final community = ref.read(activeCommunityProvider);
     final amenity = ref.read(amenityProvider(widget.amenityId)).value;
     if (cid == null || amenity == null) return;
+
+    final needsPayment =
+        amenity.pricing.isPaid && community.featureFlags.paymentsEnabled;
+    // No card on file but payment is required: collect one before reserving.
+    if (needsPayment &&
+        ref.read(currentUserProvider).value?.selectedCard == null) {
+      final added = await showAddPaymentSheet(context, ref);
+      if (added == null) return; // dismissed without adding a card
+    }
+
     setState(() => _busy = true);
     try {
       String? paymentId;
-      final needsPayment =
-          amenity.pricing.isPaid && community.featureFlags.paymentsEnabled;
       if (needsPayment) {
         paymentId = await ref.read(paymentRepositoryProvider).createPayment(
               communityId: cid,
@@ -63,6 +73,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             court: _court,
           );
       ref.read(pinCacheProvider.notifier).put(res.reservationId, res.pin);
+      // Remind the user to check in 10 minutes before the reservation starts.
+      await LocalNotifications.scheduleCheckInReminder(
+        reservationId: res.reservationId,
+        amenityName: amenity.name,
+        startLocal: widget.start,
+        timezoneName: community.timezone,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Reservation confirmed!')));

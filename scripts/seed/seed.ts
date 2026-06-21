@@ -184,8 +184,8 @@ async function main(): Promise<void> {
     timezone: "America/Chicago",
     city: "Austin, TX",
     joinCode: "MAPLE",
-    primaryColor: "#C9A24A",
-    accentColor: "#E4C16B",
+    primaryColor: "#7C5CFF",
+    accentColor: "#34E5C4",
     theme: "dark",
     paymentsEnabled: true,
     amenities: [

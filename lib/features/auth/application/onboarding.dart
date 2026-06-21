@@ -19,7 +19,11 @@ enum OnboardingStage {
 final onboardingStageProvider = Provider<OnboardingStage>((ref) {
   final auth = ref.watch(authStateProvider);
   if (auth.isLoading) return OnboardingStage.loading;
-  if (auth.value == null) return OnboardingStage.signedOut;
+  // The auth stream can momentarily emit null on cold start before the
+  // persisted session is restored; fall back to the synchronous currentUser so
+  // we show the splash instead of flashing the sign-in screen.
+  final user = auth.value ?? ref.read(authRepositoryProvider).currentUser;
+  if (user == null) return OnboardingStage.signedOut;
 
   final memberships = ref.watch(userMembershipsProvider);
   if (memberships.isLoading && !memberships.hasValue) {

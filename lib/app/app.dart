@@ -27,7 +27,7 @@ class AmenryApp extends ConsumerWidget {
       // phone width and align it to the left, instead of stretching edge-to-edge.
       builder: (context, child) {
         return ColoredBox(
-          color: const Color(0xFF0A0806),
+          color: const Color(0xFF08080B),
           child: Align(
             alignment: Alignment.centerLeft,
             child: ConstrainedBox(

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/routes.dart';
 import '../../amenities/data/amenity_repository.dart';
 import '../../amenities/domain/amenity.dart';
+import '../../notifications/data/notification_repository.dart';
 
 /// Display order for the sport/space picker (Event Hall first).
 int _order(String type) => switch (type) {
@@ -42,9 +43,15 @@ class SportPickerScreen extends ConsumerWidget {
             return ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                Text('Book',
-                    style: theme.textTheme.headlineMedium
-                        ?.copyWith(fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    Text('Book',
+                        style: theme.textTheme.headlineMedium
+                            ?.copyWith(fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    const _NotificationsBell(),
+                  ],
+                ),
                 const SizedBox(height: 4),
                 Text('Choose what you’d like to reserve',
                     style: theme.textTheme.bodyMedium),
@@ -58,6 +65,27 @@ class SportPickerScreen extends ConsumerWidget {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+/// Bell with an unread badge that opens the in-app notification inbox.
+class _NotificationsBell extends ConsumerWidget {
+  const _NotificationsBell();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final unread = ref.watch(unreadCountProvider);
+    return IconButton(
+      tooltip: 'Notifications',
+      onPressed: () => context.push(Routes.notifications),
+      icon: Badge(
+        isLabelVisible: unread > 0,
+        label: Text('$unread'),
+        backgroundColor: theme.colorScheme.error,
+        child: const Icon(Icons.notifications_none),
       ),
     );
   }

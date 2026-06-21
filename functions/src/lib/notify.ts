@@ -14,13 +14,17 @@ export async function createNotification(
   userId: string,
   title: string,
   body: string,
-  type = "general"
+  type = "general",
+  // Extra string fields stored on the inbox doc AND sent as the FCM `data`
+  // payload, so a notification tap can deep-link (e.g. { route, amenityId }).
+  data: Record<string, string> = {}
 ): Promise<void> {
   await paths.notifications(communityId).add({
     userId,
     title,
     body,
     type,
+    ...data,
     read: false,
     createdAt: Timestamp.now(),
   });
@@ -32,6 +36,7 @@ export async function createNotification(
       await getMessaging().sendEachForMulticast({
         tokens,
         notification: { title, body },
+        data: { type, ...data },
       });
     }
   } catch (e) {
@@ -68,11 +73,34 @@ export async function notifyWaitlist(
   if (!match) return;
 
   await match.ref.update({ status: "notified" });
+
+  // Enrich the message with the sport name + a human time, and attach a
+  // deep-link so tapping the notification opens that sport's booking screen.
+  const amenitySnap = await paths.amenities(communityId).doc(amenityId).get();
+  const amenityName = (amenitySnap.data()?.name as string) || "A court";
+  const tz = (await paths.community(communityId).get()).data()?.timezone as
+    | string
+    | undefined;
+  let when: string;
+  try {
+    when = new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: tz,
+    }).format(start);
+  } catch {
+    when = start.toUTCString();
+  }
+
   await createNotification(
     communityId,
     match.data().userId as string,
-    "A slot just opened",
-    "A time you wanted is now available. Book it before someone else does!",
-    "waitlist"
+    `${amenityName} is now available`,
+    `Your ${when} slot just opened up. Tap to book it before someone else grabs it.`,
+    "waitlist",
+    { amenityId, route: `/book/slots/${amenityId}` }
   );
 }

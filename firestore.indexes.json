@@ -47,5 +47,14 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "comment": "Collection-group lookup of a user's memberships across all communities (sign-in onboarding gate).",
+      "collectionGroup": "memberships",
+      "fieldPath": "userId",
+      "indexes": [
+        { "queryScope": "COLLECTION_GROUP", "order": "ASCENDING" }
+      ]
+    }
+  ]
 }

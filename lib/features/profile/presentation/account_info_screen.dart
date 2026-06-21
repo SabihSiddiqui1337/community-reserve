@@ -3,66 +3,55 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/routes.dart';
-import '../../auth/application/auth_controller.dart';
 import '../../auth/data/user_repository.dart';
 import '../../community/application/tenant_providers.dart';
 import '../../community/domain/membership.dart';
 
-class ProfileScreen extends ConsumerWidget {
-  const ProfileScreen({super.key});
+/// Formats a 10-digit US phone as `(xxx) - xxx xxxx`; returns the raw value
+/// unchanged if it isn't 10 digits.
+String formatPhone(String raw) {
+  final d = raw.replaceAll(RegExp(r'\D'), '');
+  if (d.length != 10) return raw;
+  return '(${d.substring(0, 3)}) - ${d.substring(3, 6)} ${d.substring(6)}';
+}
+
+/// Personal details + community standing. Reached from Account → Account
+/// Information; the Edit action opens the profile editor.
+class AccountInfoScreen extends ConsumerWidget {
+  const AccountInfoScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final user = ref.watch(currentUserProvider).value;
     final membership = ref.watch(currentMembershipProvider);
     final community = ref.watch(activeCommunityProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: const Text('Account Information'),
         centerTitle: true,
-        automaticallyImplyLeading: false,
         actions: [
-          IconButton(
-            tooltip: 'Edit profile',
-            icon: const Icon(Icons.edit_outlined),
+          TextButton(
             onPressed: () => context.push(Routes.editProfile),
+            child: const Text('Edit'),
           ),
         ],
       ),
       body: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
         children: [
-          Center(
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundColor: theme.colorScheme.primaryContainer,
-                  backgroundImage: (user?.photoUrl ?? '').isNotEmpty
-                      ? NetworkImage(user!.photoUrl!)
-                      : null,
-                  child: (user?.photoUrl ?? '').isEmpty
-                      ? Text(
-                          (user?.name.isNotEmpty ?? false)
-                              ? user!.name[0].toUpperCase()
-                              : '?',
-                          style: theme.textTheme.headlineMedium,
-                        )
-                      : null,
-                ),
-                const SizedBox(height: 12),
-                Text(user?.name ?? 'Resident',
-                    style: theme.textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold)),
-                Text(user?.email ?? '',
-                    style: theme.textTheme.bodyMedium),
-              ],
-            ),
-          ),
-          const SizedBox(height: 28),
+          _Section(title: 'Profile', children: [
+            _Row(label: 'Name', value: user?.name.isNotEmpty == true
+                ? user!.name
+                : '—'),
+            _Row(label: 'Email', value: user?.email ?? '—'),
+            _Row(
+                label: 'Phone',
+                value: user?.phone.isNotEmpty == true
+                    ? formatPhone(user!.phone)
+                    : '—'),
+          ]),
+          const SizedBox(height: 16),
           _Section(title: 'Community', children: [
             _Row(label: 'Community', value: community.name),
             _Row(
@@ -80,24 +69,16 @@ class ProfileScreen extends ConsumerWidget {
                 value: _residencyLabel(membership?.residencyStatus)),
           ]),
           const SizedBox(height: 16),
-          Card(
-            margin: EdgeInsets.zero,
-            child: ListTile(
-              leading: const Icon(Icons.person_outline),
-              title: const Text('Account',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: const Text('Personal info, payment methods, standing'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push(Routes.account),
-            ),
-          ),
-          const SizedBox(height: 28),
-          OutlinedButton.icon(
-            onPressed: () =>
-                ref.read(authControllerProvider.notifier).signOut(),
-            icon: const Icon(Icons.logout),
-            label: const Text('Sign out'),
-          ),
+          _Section(title: 'Standing', children: [
+            _Row(
+                label: 'No-shows',
+                value: '${membership?.noShowCount ?? 0}'),
+            _Row(
+                label: 'Status',
+                value: (membership?.isBanned ?? false)
+                    ? 'Temporarily paused'
+                    : 'Good standing'),
+          ]),
         ],
       ),
     );

@@ -14,6 +14,8 @@ _AppNotification _$AppNotificationFromJson(Map<String, dynamic> json) =>
       body: json['body'] as String? ?? '',
       type: json['type'] as String? ?? 'general',
       read: json['read'] as bool? ?? false,
+      route: json['route'] as String?,
+      amenityId: json['amenityId'] as String?,
       createdAt: const TimestampConverter().fromJson(json['createdAt']),
     );
 
@@ -25,5 +27,7 @@ Map<String, dynamic> _$AppNotificationToJson(_AppNotification instance) =>
       'body': instance.body,
       'type': instance.type,
       'read': instance.read,
+      'route': instance.route,
+      'amenityId': instance.amenityId,
       'createdAt': const TimestampConverter().toJson(instance.createdAt),
     };

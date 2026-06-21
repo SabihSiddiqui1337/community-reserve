@@ -33,10 +33,10 @@ class AppTheme {
 
     final base = ThemeData(brightness: brightness, useMaterial3: true);
 
-    // Warm near-black for dark mode so gold accents read as premium, not grey.
-    final scaffoldBg = brightness == Brightness.dark
-        ? const Color(0xFF13110B)
-        : scheme.surface;
+    // Cool obsidian for dark mode — a near-black canvas that lets the electric
+    // accent pop, modern and premium rather than warm/gold.
+    final isDark = brightness == Brightness.dark;
+    final scaffoldBg = isDark ? const Color(0xFF0A0A0F) : scheme.surface;
 
     return base.copyWith(
       colorScheme: scheme,
@@ -48,6 +48,29 @@ class AppTheme {
         centerTitle: false,
         foregroundColor: scheme.onSurface,
       ),
+      navigationBarTheme: isDark
+          ? NavigationBarThemeData(
+              backgroundColor: const Color(0xFF101017),
+              elevation: 0,
+              indicatorColor: scheme.primary.withValues(alpha: 0.20),
+              labelTextStyle: WidgetStateProperty.resolveWith(
+                (states) => GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: states.contains(WidgetState.selected)
+                      ? scheme.primary
+                      : scheme.onSurfaceVariant,
+                ),
+              ),
+              iconTheme: WidgetStateProperty.resolveWith(
+                (states) => IconThemeData(
+                  color: states.contains(WidgetState.selected)
+                      ? scheme.primary
+                      : scheme.onSurfaceVariant,
+                ),
+              ),
+            )
+          : null,
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(52),

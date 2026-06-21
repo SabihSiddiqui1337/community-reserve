@@ -40,8 +40,12 @@ export const validateAccess = onCall(async (request) => {
   if (res.status !== "booked" && res.status !== "checkedIn") {
     return { valid: false, reason: "released" };
   }
+  // Allow check-in up to 10 minutes before the start time.
+  const CHECKIN_LEAD_MS = 10 * 60_000;
   if (now > end) return { valid: false, reason: "expired" };
-  if (now < start) return { valid: false, reason: "not-started" };
+  if (now.getTime() < start.getTime() - CHECKIN_LEAD_MS) {
+    return { valid: false, reason: "not-started" };
+  }
 
   if (pin) {
     const ok = verifyPin(pin, res.salt as string, res.pinHash as string);

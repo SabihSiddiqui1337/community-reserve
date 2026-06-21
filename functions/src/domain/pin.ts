@@ -11,9 +11,9 @@ export interface HashedPin {
   salt: string;
 }
 
-/** Cryptographically-random 6-digit PIN (`000000`–`999999`). */
+/** Cryptographically-random 4-digit PIN (`0000`–`9999`). */
 export function generatePin(): string {
-  return randomInt(0, 1_000_000).toString().padStart(6, "0");
+  return randomInt(0, 10_000).toString().padStart(4, "0");
 }
 
 export function hashPin(pin: string, salt = randomBytes(16).toString("hex")): HashedPin {

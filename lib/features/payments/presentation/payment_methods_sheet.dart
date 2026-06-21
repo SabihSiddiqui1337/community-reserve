@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/data/user_repository.dart';
 import '../domain/payment_method.dart';
+import 'add_payment_sheet.dart';
 
 /// Bottom sheet to select / edit / add / remove saved cards (IMG 1516/1517).
 class PaymentMethodsSheet extends ConsumerStatefulWidget {
@@ -26,7 +27,7 @@ class _PaymentMethodsSheetState extends ConsumerState<PaymentMethodsSheet> {
   Future<void> _remove(List<PaymentMethod> cards, PaymentMethod card) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => _RemoveDialog(card: card),
+      builder: (_) => RemoveCardDialog(card: card),
     );
     if (ok != true) return;
     final remaining = cards.where((c) => c.id != card.id).toList();
@@ -37,18 +38,8 @@ class _PaymentMethodsSheetState extends ConsumerState<PaymentMethodsSheet> {
         );
   }
 
-  Future<void> _add(List<PaymentMethod> cards) async {
-    final card = await showDialog<PaymentMethod>(
-      context: context,
-      builder: (_) => const _AddCardDialog(),
-    );
-    if (card == null) return;
-    await ref.read(userRepositoryProvider).setPaymentMethods(
-          _uid,
-          [...cards, card],
-          selectedId: card.id,
-        );
-  }
+  // The add flow persists the new card itself; nothing more to do here.
+  Future<void> _add() => showAddPaymentSheet(context, ref);
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +83,7 @@ class _PaymentMethodsSheetState extends ConsumerState<PaymentMethodsSheet> {
                 child: Text('No cards yet.',
                     style: theme.textTheme.bodyMedium),
               ),
-            ...cards.map((c) => _CardTile(
+            ...cards.map((c) => PaymentCardTile(
                   card: c,
                   editing: _editing,
                   selected: c.id == selectedId,
@@ -103,7 +94,7 @@ class _PaymentMethodsSheetState extends ConsumerState<PaymentMethodsSheet> {
             Align(
               alignment: Alignment.center,
               child: TextButton.icon(
-                onPressed: () => _add(cards),
+                onPressed: _add,
                 icon: const Icon(Icons.add),
                 label: const Text('Add payment method'),
               ),
@@ -122,8 +113,11 @@ class _PaymentMethodsSheetState extends ConsumerState<PaymentMethodsSheet> {
   }
 }
 
-class _CardTile extends StatelessWidget {
-  const _CardTile({
+/// A saved-card row: tap to select, or delete while in edit mode. Shared by the
+/// payment-method sheet and the Account → Payment Info screen.
+class PaymentCardTile extends StatelessWidget {
+  const PaymentCardTile({
+    super.key,
     required this.card,
     required this.editing,
     required this.selected,
@@ -187,8 +181,9 @@ class _CardTile extends StatelessWidget {
   }
 }
 
-class _RemoveDialog extends StatelessWidget {
-  const _RemoveDialog({required this.card});
+/// Confirms removal of a saved card. Pops `true` to remove.
+class RemoveCardDialog extends StatelessWidget {
+  const RemoveCardDialog({super.key, required this.card});
   final PaymentMethod card;
 
   @override
@@ -225,72 +220,6 @@ class _RemoveDialog extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ],
-    );
-  }
-}
-
-class _AddCardDialog extends StatefulWidget {
-  const _AddCardDialog();
-  @override
-  State<_AddCardDialog> createState() => _AddCardDialogState();
-}
-
-class _AddCardDialogState extends State<_AddCardDialog> {
-  final _last4 = TextEditingController();
-  String _brand = 'Visa';
-
-  @override
-  void dispose() {
-    _last4.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Add payment method'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          DropdownButtonFormField<String>(
-            initialValue: _brand,
-            decoration: const InputDecoration(labelText: 'Card type'),
-            items: const ['Visa', 'Mastercard', 'Discover', 'Amex', 'Card']
-                .map((b) => DropdownMenuItem(value: b, child: Text(b)))
-                .toList(),
-            onChanged: (v) => setState(() => _brand = v ?? 'Card'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _last4,
-            keyboardType: TextInputType.number,
-            maxLength: 4,
-            decoration: const InputDecoration(
-                labelText: 'Last 4 digits', hintText: '4242', counterText: ''),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () {
-            final last4 = _last4.text.trim();
-            if (last4.length != 4) return;
-            Navigator.pop(
-              context,
-              PaymentMethod(
-                id: 'card_${DateTime.now().microsecondsSinceEpoch}',
-                brand: _brand,
-                last4: last4,
-              ),
-            );
-          },
-          child: const Text('Add'),
         ),
       ],
     );
