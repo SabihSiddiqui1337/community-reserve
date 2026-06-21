@@ -12,8 +12,10 @@ class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) return _demo;
     switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
       case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        return _ios;
+      case TargetPlatform.android:
         return _demo;
       default:
         return _demo;
@@ -26,5 +28,19 @@ class DefaultFirebaseOptions {
     messagingSenderId: '000000000000',
     projectId: 'demo-amenry',
     storageBucket: 'demo-amenry.appspot.com',
+  );
+
+  /// iOS/macOS need an iOS-format `appId` (`...:ios:<hex>`), a matching bundle
+  /// id, and an `apiKey` in Google's real format (39 chars, starts with `A`).
+  /// The native FirebaseCore + FirebaseInstallations SDKs validate all three
+  /// and abort the app at launch otherwise — even when only the emulators are
+  /// used. These are still dummy values that can never reach a real backend.
+  static const FirebaseOptions _ios = FirebaseOptions(
+    apiKey: 'AIzaSyDEMOamenryDEMOamenryDEMOamenry123',
+    appId: '1:123456789012:ios:0123456789abcdef',
+    messagingSenderId: '123456789012',
+    projectId: 'demo-amenry',
+    storageBucket: 'demo-amenry.appspot.com',
+    iosBundleId: 'com.amenry.amenry',
   );
 }
