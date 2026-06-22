@@ -9,6 +9,8 @@ import '../../../shared/money/money.dart';
 import '../../../shared/widgets/app_snack.dart';
 import '../../amenities/data/amenity_repository.dart';
 import '../../amenities/domain/amenity.dart';
+import '../../auth/data/user_repository.dart';
+import '../../auth/domain/app_user.dart';
 import '../../community/application/tenant_providers.dart';
 import '../data/reservation_repository.dart';
 import '../domain/reservation.dart';
@@ -27,6 +29,16 @@ int _chargeCents(Amenity? amenity, Reservation r) {
   final minutes = end.difference(start).inMinutes;
   if (minutes <= 0) return 0;
   return (amenity.pricing.amountCents * (minutes / 60.0)).round();
+}
+
+/// Sales-tax rate applied at checkout (matches the booking flow).
+const _kTaxRate = 0.0825;
+
+/// The full amount paid — subtotal + tax — in cents.
+int _totalCents(Amenity? amenity, Reservation r) {
+  final subtotal = _chargeCents(amenity, r);
+  if (subtotal == 0) return 0;
+  return subtotal + (subtotal * _kTaxRate).round();
 }
 
 /// A reservation is "past" once it is no longer live/upcoming — i.e. completed,
@@ -109,7 +121,8 @@ class _ReservationDetailDialogState
     // authoritative amount.
     final amenity = ref.read(amenityProvider(r.amenityId)).value;
     final paid = amenity?.pricing.isPaid ?? false;
-    final refundEstimate = _chargeCents(amenity, r);
+    // Full amount paid (subtotal + tax) — the whole charge is refunded.
+    final refundEstimate = _totalCents(amenity, r);
     final hasRefund = paid && refundEstimate > 0;
 
     // A cancellation only counts once the reservation has started. Compute
@@ -127,7 +140,7 @@ class _ReservationDetailDialogState
       builder: (dialogContext) {
         final dialogTheme = Theme.of(dialogContext);
         return AlertDialog(
-          title: const Text('Cancel reservation?'),
+          title: const Text('Cancel Reservation?'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -265,9 +278,6 @@ class _ReservationDetailDialogState
     final theme = Theme.of(context);
     final reservation = ref.watch(reservationProvider(widget.reservationId));
     final pinCache = ref.watch(pinCacheProvider);
-    final headerName = reservation.value != null
-        ? ref.watch(amenityProvider(reservation.value!.amenityId)).value?.name
-        : null;
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -281,7 +291,7 @@ class _ReservationDetailDialogState
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(headerName ?? 'Reservation',
+                    child: Text('Reservation',
                         style: theme.textTheme.titleLarge,
                         overflow: TextOverflow.ellipsis),
                   ),
@@ -414,6 +424,9 @@ class _Body extends StatelessWidget {
           // Genuinely before the access window opens (and not ended).
           _LockedAccessCard(pinOpensAt: pinOpensAt),
         ],
+        // Receipt for the booking (subtotal + tax + total paid).
+        const SizedBox(height: 14),
+        _PaymentOutcome(reservation: r, amenity: amenity),
         // Cancel is allowed only before check-in. Once checked in / code used,
         // it's hidden.
         if (r.status == ReservationStatus.booked && r.isUpcoming) ...[
@@ -487,105 +500,201 @@ class _InfoCard extends StatelessWidget {
 
 /// Payment outcome for a PAST reservation, derived from its status + whether a
 /// payment existed (`paymentId`) + the amenity charge (per-hour × hours).
-class _PaymentOutcome extends StatelessWidget {
+/// A full booking receipt for a past reservation: subtotal, tax, total paid,
+/// and (for cancellations) a refunded row + net. Keeps the lime accent.
+class _PaymentOutcome extends ConsumerWidget {
   const _PaymentOutcome({required this.reservation, required this.amenity});
   final Reservation reservation;
   final Amenity? amenity;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final r = reservation;
-    final charge = _chargeCents(amenity, r);
-    // A payment existed if the amenity is paid AND a paymentId was recorded.
-    final wasPaid =
-        (amenity?.pricing.isPaid ?? false) && r.paymentId != null && charge > 0;
-    final amount = Money.format(charge);
+    final subtotal = _chargeCents(amenity, r);
+    // What it was paid with — the snapshot on the booking, else the user's
+    // current card on file. Apple/Google Pay always shows the backing card's
+    // last 4 too.
+    final card = ref.watch(currentUserProvider).value?.selectedCard;
+    var paidWith = r.paymentMethod ??
+        (card != null ? '${card.brand} •••• ${card.last4}' : null);
+    if (paidWith != null && card != null && !paidWith.contains('••••')) {
+      paidWith = '$paidWith •••• ${card.last4}';
+    }
+    final wasPaid = (amenity?.pricing.isPaid ?? false) &&
+        r.paymentId != null &&
+        subtotal > 0;
 
-    late final IconData icon;
-    late final Color color;
-    late final String title;
-    String? subtitle;
-
-    switch (r.status) {
-      case ReservationStatus.completed:
-        if (wasPaid) {
-          icon = Icons.check_circle;
-          color = theme.colorScheme.primary;
-          title = 'Charged $amount';
-          subtitle = 'Payment completed for this booking.';
-        } else {
-          icon = Icons.check_circle_outline;
-          color = theme.colorScheme.onSurfaceVariant;
-          title = 'Completed';
-          subtitle = 'No payment was charged.';
-        }
-      case ReservationStatus.cancelled:
-        if (wasPaid) {
-          icon = Icons.replay_circle_filled;
-          color = theme.colorScheme.primary;
-          title = 'Refunded $amount';
-          subtitle = 'This booking was cancelled and fully refunded.';
-        } else {
-          icon = Icons.cancel_outlined;
-          color = theme.colorScheme.onSurfaceVariant;
-          title = 'Cancelled — no payment was charged';
-        }
-      case ReservationStatus.noShow:
-        icon = Icons.report_gmailerrorred;
-        color = theme.colorScheme.error;
-        title = wasPaid ? 'Charged $amount (no-show)' : 'No-show';
-        subtitle = wasPaid ? null : 'No payment was charged.';
-      case ReservationStatus.expired:
-        icon = Icons.timer_off;
-        color = theme.colorScheme.onSurfaceVariant;
-        title = wasPaid ? 'Charged $amount (expired)' : 'Expired';
-        subtitle = wasPaid ? null : 'No payment was charged.';
-      case ReservationStatus.booked:
-      case ReservationStatus.checkedIn:
-        // Not reachable here (those are "upcoming"), but handle gracefully.
-        icon = Icons.event_available;
-        color = theme.colorScheme.onSurfaceVariant;
-        title = wasPaid ? 'Charged $amount' : 'No payment was charged.';
+    // No charge ever happened — show a clean note instead of an invoice.
+    if (!wasPaid) {
+      final msg = switch (r.status) {
+        ReservationStatus.cancelled => 'Cancelled — no payment was charged.',
+        ReservationStatus.noShow => 'No-show — no payment was charged.',
+        ReservationStatus.expired => 'Expired — no payment was charged.',
+        _ => 'No payment was charged.',
+      };
+      return _ReceiptCard(
+        child: Row(
+          children: [
+            Icon(Icons.receipt_long_outlined,
+                color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(width: 12),
+            Expanded(
+                child: Text(msg, style: theme.textTheme.bodyMedium)),
+          ],
+        ),
+      );
     }
 
+    final tax = (subtotal * _kTaxRate).round();
+    final total = subtotal + tax;
+    final refunded = r.status == ReservationStatus.cancelled;
+    final lime = theme.colorScheme.primary;
+
+    return _ReceiptCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.receipt_long, color: lime, size: 20),
+              const SizedBox(width: 8),
+              Text('RECEIPT',
+                  style: TextStyle(
+                      letterSpacing: 1.2,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: lime)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _ReceiptRow(label: 'Subtotal', value: Money.format(subtotal)),
+          const SizedBox(height: 9),
+          _ReceiptRow(label: 'Tax (8.25%)', value: Money.format(tax)),
+          const SizedBox(height: 12),
+          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          const SizedBox(height: 12),
+          _ReceiptRow(
+              label: 'Total paid', value: Money.format(total), strong: true),
+          if (refunded) ...[
+            const SizedBox(height: 12),
+            _ReceiptRow(
+              label: 'Refunded',
+              value: '−${Money.format(total)}',
+              strong: true,
+              valueColor: lime,
+            ),
+            const SizedBox(height: 12),
+            Divider(color: theme.colorScheme.outlineVariant, height: 1),
+            const SizedBox(height: 12),
+            _ReceiptRow(
+                label: 'Net charged', value: Money.format(0), strong: true),
+            const SizedBox(height: 10),
+            Text('This booking was cancelled and fully refunded.',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          ] else if (r.status == ReservationStatus.noShow) ...[
+            const SizedBox(height: 10),
+            Text('Charged as a no-show.',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.error)),
+          ],
+          if (paidWith != null) ...[
+            const SizedBox(height: 12),
+            Divider(color: theme.colorScheme.outlineVariant, height: 1),
+            const SizedBox(height: 12),
+            Builder(builder: (context) {
+              // "Discover •••• 9293" → method "Discover", digits "•••• 9293".
+              final parts = paidWith!.split(' •••• ');
+              final method = parts.first;
+              final digits = parts.length > 1 ? '•••• ${parts[1]}' : null;
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.credit_card,
+                      size: 16, color: theme.colorScheme.onSurfaceVariant),
+                  const SizedBox(width: 8),
+                  Text('Paid with',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant)),
+                  const Spacer(),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(method,
+                          style: theme.textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600)),
+                      if (digits != null)
+                        Text(digits,
+                            style: theme.textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ],
+              );
+            }),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Card shell used by the receipt (lime-tinted border to keep the accent).
+class _ReceiptCard extends StatelessWidget {
+  const _ReceiptCard({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
+        border:
+            Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.30)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('PAYMENT',
-                    style: TextStyle(
-                        letterSpacing: 1.2,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: theme.colorScheme.onSurfaceVariant)),
-                const SizedBox(height: 4),
-                Text(title,
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold, color: color)),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 2),
-                  Text(subtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant)),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
+      child: child,
+    );
+  }
+}
+
+class _ReceiptRow extends StatelessWidget {
+  const _ReceiptRow({
+    required this.label,
+    required this.value,
+    this.strong = false,
+    this.valueColor,
+  });
+  final String label;
+  final String value;
+  final bool strong;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final labelStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: strong
+          ? theme.colorScheme.onSurface
+          : theme.colorScheme.onSurfaceVariant,
+      fontWeight: strong ? FontWeight.w700 : FontWeight.w400,
+    );
+    final valueStyle = (strong
+            ? theme.textTheme.titleMedium
+            : theme.textTheme.bodyMedium)
+        ?.copyWith(
+      fontWeight: strong ? FontWeight.bold : FontWeight.w500,
+      color: valueColor ?? theme.colorScheme.onSurface,
+    );
+    return Row(
+      children: [
+        Text(label, style: labelStyle),
+        const Spacer(),
+        Text(value, style: valueStyle),
+      ],
     );
   }
 }
@@ -775,7 +884,7 @@ class _StatusChip extends StatelessWidget {
     final (label, color) = switch (status) {
       ReservationStatus.booked => ('Booked', Colors.blue),
       ReservationStatus.checkedIn => ('Checked in', Colors.green),
-      ReservationStatus.completed => ('Completed', Colors.grey),
+      ReservationStatus.completed => ('Completed', Color(0xFF22C55E)),
       ReservationStatus.noShow => ('No-show', Colors.red),
       ReservationStatus.cancelled => ('Cancelled', Colors.grey),
       ReservationStatus.expired => ('Expired', Colors.grey),

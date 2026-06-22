@@ -44,7 +44,7 @@ async function ensureUser(
   }
   await db.doc(`users/${uid}`).set(
     {
-      name, email, phone: "", photoUrl: null, fcmTokens: [], globalRole,
+      name, email, phone: "8329015432", photoUrl: null, fcmTokens: [], globalRole,
       paymentMethods: [
         { id: "card_9293", brand: "Discover", last4: "9293" },
         { id: "card_9672", brand: "Visa", last4: "9672" },
@@ -194,9 +194,9 @@ async function main(): Promise<void> {
       { id: "basketball", type: "basketball", name: "Basketball", description: "Full indoor court.", status: "active", slotMinutes: 60, capacity: 1, isPaid: true, amountCents: 500 },
     ],
     members: [
-      { uid: "admin-uid", email: "admin@maplegrove.test", name: "Dana Director", role: "admin", residencyStatus: "verified", unit: "A-1", address: "100 Maplewood Dr, Unit A-1, Austin, TX 78701" },
-      { uid: "resident1-uid", email: "alex@maplegrove.test", name: "Alex Resident", role: "resident", residencyStatus: "verified", unit: "B-2", address: "100 Maplewood Dr, Unit B-2, Austin, TX 78701" },
-      { uid: "resident2-uid", email: "sam@maplegrove.test", name: "Sam Resident", role: "resident", residencyStatus: "pending", unit: "C-3", address: "100 Maplewood Dr, Unit C-3, Austin, TX 78701" },
+      { uid: "admin-uid", email: "admin@maplegrove.test", name: "Dana Director", role: "admin", residencyStatus: "verified", unit: "A-1", address: "100 Maplewood Dr, Austin TX 78701" },
+      { uid: "resident1-uid", email: "alex@maplegrove.test", name: "Alex Resident", role: "resident", residencyStatus: "verified", unit: "B-2", address: "100 Maplewood Dr, Austin TX 78701" },
+      { uid: "resident2-uid", email: "sam@maplegrove.test", name: "Sam Resident", role: "resident", residencyStatus: "pending", unit: "C-3", address: "100 Maplewood Dr, Austin TX 78701" },
     ],
   });
 
@@ -215,7 +215,7 @@ async function main(): Promise<void> {
       { id: "pool", type: "generic", name: "Swimming Pool", description: "Heated lap pool.", status: "active", slotMinutes: 60, capacity: 20 },
     ],
     members: [
-      { uid: "oak-admin-uid", email: "admin@oakwood.test", name: "Olivia Oak", role: "admin", residencyStatus: "verified", unit: "1A", address: "55 Oakwood Ln, Unit 1A, San Diego, CA 92101" },
+      { uid: "oak-admin-uid", email: "admin@oakwood.test", name: "Olivia Oak", role: "admin", residencyStatus: "verified", unit: "1A", address: "55 Oakwood Ln, San Diego CA 92101" },
     ],
   });
 
@@ -242,7 +242,27 @@ async function main(): Promise<void> {
     startTime: daysFromNow(1, 18), endTime: daysFromNow(1, 19),
     status: "booked", pinHash: null, salt: null, qrToken: null,
     accessCredentialId: null, checkedInAt: null, createdAt: Timestamp.now(),
-    cancelledAt: null, paymentId: null,
+    cancelledAt: null, paymentId: "pay_demo_1",
+    paymentMethod: "Discover •••• 9293",
+  });
+  // Past history for Alex: a completed (paid) booking and a cancelled (refunded)
+  // one, both with a paymentId so the receipt shows a real charge/refund.
+  await res.doc("res-hist-1").set({
+    amenityId: "pickleball", userId: "resident1-uid",
+    startTime: daysFromNow(-3, 18), endTime: daysFromNow(-3, 19),
+    status: "completed", pinHash: null, salt: null, qrToken: null,
+    accessCredentialId: null, checkedInAt: daysFromNow(-3, 18),
+    createdAt: daysFromNow(-4, 12), cancelledAt: null, paymentId: "pay_hist_1",
+    paymentMethod: "Visa •••• 9672",
+  });
+  await res.doc("res-hist-2").set({
+    amenityId: "basketball", userId: "resident1-uid",
+    startTime: daysFromNow(-2, 19), endTime: daysFromNow(-2, 20),
+    status: "cancelled", pinHash: null, salt: null, qrToken: null,
+    accessCredentialId: null, checkedInAt: null,
+    createdAt: daysFromNow(-5, 9),
+    cancelledAt: daysFromNow(-2, 20), paymentId: "pay_hist_2",
+    paymentMethod: "Apple Pay",
   });
 
   // Community Chat demo data for Maple Grove (demo-hoa).

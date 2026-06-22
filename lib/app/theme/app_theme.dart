@@ -94,6 +94,23 @@ class AppTheme {
         backgroundColor: surface1,
         surfaceTintColor: Colors.transparent,
       ),
+      // Toasts: a dark floating pill (not the default white inverse-surface),
+      // lifted above the floating nav, with lime action text.
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: surface2,
+        contentTextStyle:
+            const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+        actionTextColor: lime,
+        elevation: 8,
+        // Floating already lifts above the nav/FAB; keep a small margin so it
+        // sits at the bottom (not pushed toward the middle).
+        insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: outline),
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surface2,

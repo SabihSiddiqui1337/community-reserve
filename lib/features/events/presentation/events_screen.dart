@@ -61,7 +61,7 @@ class EventsScreen extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      Text('Events & announcements',
+                      Text('Events & Announcements',
                           style: theme.textTheme.titleMedium),
                     ],
                   ),
@@ -161,7 +161,7 @@ class EventsScreen extends ConsumerWidget {
                   TextField(
                     controller: bodyCtl,
                     maxLines: 4,
-                    decoration: const InputDecoration(labelText: 'Message'),
+                    decoration: const InputDecoration(labelText: 'Description'),
                   ),
                   const SizedBox(height: 16),
                   FilledButton(

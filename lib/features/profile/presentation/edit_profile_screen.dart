@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../shared/format/contact.dart';
 import '../../../shared/widgets/app_snack.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/data/user_repository.dart';
@@ -113,7 +114,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     if (!_loaded && user != null) {
       _name.text = user.name;
       _email.text = user.email;
-      _phone.text = user.phone;
+      _phone.text = formatPhone(user.phone);
       _existingPhotoUrl = user.photoUrl;
       _loaded = true;
     }
@@ -208,8 +209,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             TextFormField(
               controller: _phone,
               keyboardType: TextInputType.phone,
+              inputFormatters: [PhoneInputFormatter()],
               decoration: const InputDecoration(
                 labelText: 'Phone number',
+                hintText: '(555) 123-4567',
                 border: OutlineInputBorder(),
               ),
             ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/routes.dart';
+import '../../../shared/format/contact.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/data/user_repository.dart';
 import '../../community/application/tenant_providers.dart';
@@ -67,9 +68,9 @@ class ProfileScreen extends ConsumerWidget {
             _Row(label: 'Community', value: community.name),
             _Row(
                 label: 'Address',
-                value: (membership?.address.isNotEmpty ?? false)
+                value: addressTwoLine((membership?.address.isNotEmpty ?? false)
                     ? membership!.address
-                    : community.address),
+                    : community.address)),
             _Row(
                 label: 'Unit',
                 value: membership?.unit.isNotEmpty == true

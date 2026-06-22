@@ -34,6 +34,8 @@ abstract class Reservation with _$Reservation {
     @TimestampConverter() DateTime? createdAt,
     @TimestampConverter() DateTime? cancelledAt,
     String? paymentId,
+    // Snapshot of how it was paid, e.g. "Discover •••• 9293" or "Apple Pay".
+    String? paymentMethod,
   }) = _Reservation;
 
   factory Reservation.fromJson(Map<String, dynamic> json) =>
