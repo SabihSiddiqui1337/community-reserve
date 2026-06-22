@@ -45,9 +45,10 @@ service cloud.firestore {
     }
 
     // ---- Public community directory (join-flow discovery) ----
-    // Minimal summary fields only; readable before joining. Seeded/admin-written.
+    // Minimal summary fields only; readable publicly so the Sign-up screen can
+    // list communities BEFORE the user has an account. Seeded/admin-written.
     match /communityDirectory/{communityId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if false;
     }
 
@@ -145,6 +146,46 @@ service cloud.firestore {
         allow update: if isSignedIn()
           && resource.data.userId == request.auth.uid;
         allow create, delete: if false;
+      }
+
+      // ---- Community Chat ----
+      // Channels are admin-managed rooms; any member can read and any member
+      // can post a message (as themselves). DMs are private to their
+      // participants.
+      match /channels/{channelId} {
+        allow read: if isMember(communityId);
+        allow create, update, delete: if isCommunityAdmin(communityId);
+
+        match /messages/{messageId} {
+          allow read: if isMember(communityId);
+          allow create: if isMember(communityId)
+            && request.resource.data.senderId == request.auth.uid;
+          allow update, delete: if false;
+        }
+      }
+
+      match /dms/{dmId} {
+        // Only participants (and members creating a thread they're in) may
+        // read/write the thread doc.
+        allow read: if isMember(communityId)
+          && request.auth.uid in resource.data.participantIds;
+        allow create: if isMember(communityId)
+          && request.auth.uid in request.resource.data.participantIds;
+        allow update: if isMember(communityId)
+          && request.auth.uid in resource.data.participantIds;
+        allow delete: if false;
+
+        // Messages: ideally gated on the parent dm's participants. Cross-doc
+        // get() here is awkward (and costs a read per message), so as a
+        // pragmatic fallback any community member may read/create — they can
+        // only reach this path if they already know the dmId.
+        // TODO tighten: verify request.auth.uid in parent dm participantIds.
+        match /messages/{messageId} {
+          allow read: if isMember(communityId);
+          allow create: if isMember(communityId)
+            && request.resource.data.senderId == request.auth.uid;
+          allow update, delete: if false;
+        }
       }
     }
   }

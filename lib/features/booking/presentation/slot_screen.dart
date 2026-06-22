@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 
 import '../../../app/router/routes.dart';
 import '../../../shared/money/money.dart';
+import '../../../shared/widgets/app_snack.dart';
 import '../../amenities/data/amenity_repository.dart';
+import '../../amenities/domain/amenity.dart';
 import '../../community/application/tenant_providers.dart';
 import '../../notifications/data/local_notification_service.dart';
 import '../../reservations/data/reservation_repository.dart';
@@ -28,6 +30,50 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
   DateTime _day = DateTime.now();
   final Set<int> _selected = {}; // indices into the day's visible slots
   bool _capHit = false;
+  bool _blocked = false; // tapped a non-adjacent slot while a 2-hr block is set
+  final ScrollController _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  bool _limitDialogOpen = false;
+
+  Future<void> _showLimitDialog(String body) async {
+    if (_limitDialogOpen) return;
+    _limitDialogOpen = true;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: Icon(Icons.timer_outlined,
+            color: Theme.of(dialogContext).colorScheme.primary),
+        title: const Text('Up to 2 hours'),
+        content: Text(body),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+    _limitDialogOpen = false;
+  }
+
+  /// When the Check-out bar first appears, nudge the list up so the slot you
+  /// just tapped isn't hidden behind the bar.
+  void _liftAboveBar() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+      _scroll.animateTo(
+        (_scroll.offset + 110).clamp(0.0, _scroll.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOut,
+      );
+    });
+  }
 
   bool _isToday(DateTime d) {
     final now = DateTime.now();
@@ -60,9 +106,18 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
       } else if (_selected.contains(index) && _selected.length == 1) {
         _selected.clear();
       } else {
-        _selected
-          ..clear()
-          ..add(index);
+        // A non-adjacent ("skipped") slot can't extend a consecutive block.
+        if (_selected.length >= _maxHours) {
+          // Don't wipe out a full 2-hour block on a stray tap — keep it and
+          // explain instead.
+          _blocked = true;
+        } else {
+          // Only a single hour was picked — nothing valuable to lose, so just
+          // move the selection to the tapped slot.
+          _selected
+            ..clear()
+            ..add(index);
+        }
       }
     });
   }
@@ -131,37 +186,74 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
                   _selected.clear();
                 }),
               ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Text('Select up to 2 consecutive hours',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant)),
+                  ],
+                ),
+              ),
               const Divider(height: 1),
               Expanded(
                 child: availability.isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : slots.isEmpty
                         ? const Center(child: Text('No more times today.'))
-                        : ListView.separated(
-                            padding: const EdgeInsets.only(bottom: 120),
-                            itemCount: slots.length,
-                            separatorBuilder: (_, _) => const Divider(height: 1),
-                            itemBuilder: (context, i) => _SlotRow(
-                              slot: slots[i],
-                              selected: _selected.contains(i),
-                              waitlisted:
-                                  waitlistedStarts.contains(slots[i].start),
-                              onNotify: () => _notify(slots[i]),
-                              onTap: () {
-                                _toggle(i, slots.length - 1);
-                                if (_capHit) {
-                                  _capHit = false;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content:
-                                          Text('You can book up to 2 hours.'),
-                                      duration: Duration(seconds: 2),
-                                    ),
-                                  );
+                        : Builder(builder: (context) {
+                            // Footer note with the closing time (skipped for
+                            // 24-hour amenities).
+                            final open24 =
+                                a.openHour == 0 && a.closeHour == 24;
+                            final count =
+                                slots.length + (open24 ? 0 : 1);
+                            return ListView.separated(
+                              controller: _scroll,
+                              padding: EdgeInsets.only(
+                                  bottom: _selected.isEmpty ? 24 : 120),
+                              itemCount: count,
+                              separatorBuilder: (_, i) => i >= slots.length - 1
+                                  ? const SizedBox.shrink()
+                                  : const Divider(height: 1),
+                              itemBuilder: (context, i) {
+                                if (i == slots.length) {
+                                  return _ClosingFooter(amenity: a);
                                 }
+                                return _SlotRow(
+                                  slot: slots[i],
+                                  selected: _selected.contains(i),
+                                  waitlisted: waitlistedStarts
+                                      .contains(slots[i].start),
+                                  onNotify: () => _notify(slots[i]),
+                                  onTap: () {
+                                    final wasEmpty = _selected.isEmpty;
+                                    _toggle(i, slots.length - 1);
+                                    if (_capHit) {
+                                      _capHit = false;
+                                      _showLimitDialog(
+                                          'You can book a maximum of 2 consecutive hours at a time.');
+                                    }
+                                    if (_blocked) {
+                                      _blocked = false;
+                                      _showLimitDialog(
+                                          'Hours must be back-to-back. You can book up to 2 consecutive hours — tap a slot next to your current selection, or clear it first.');
+                                    }
+                                    if (wasEmpty && _selected.isNotEmpty) {
+                                      _liftAboveBar();
+                                    }
+                                  },
+                                );
                               },
-                            ),
-                          ),
+                            );
+                          }),
               ),
             ],
           );
@@ -205,19 +297,15 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                "We'll notify you when the $time slot opens. (Demo: alert in ~5s — you can close the app.)"),
-            duration: const Duration(seconds: 4),
-          ),
+        showSnack(
+          context,
+          "We'll notify you when the $time slot opens. (Demo: alert in ~5s — you can close the app.)",
+          duration: const Duration(seconds: 4),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Couldn't set up the notification.")),
-        );
+        showSnack(context, "Couldn't set up the notification.");
       }
     }
   }
@@ -454,6 +542,42 @@ class _SlotRow extends StatelessWidget {
   }
 }
 
+/// A gentle closing-time note shown under the last slot of the day.
+class _ClosingFooter extends StatelessWidget {
+  const _ClosingFooter({required this.amenity});
+  final Amenity amenity;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final closeTime =
+        TimeOfDay(hour: amenity.closeHour % 24, minute: 0).format(context);
+    final isCourt = amenity.type == 'pickleballCourt' ||
+        amenity.type == 'basketball';
+    final word = isCourt ? 'Lights close' : 'Closes';
+    final icon = isCourt ? Icons.lightbulb_outline : Icons.nightlight_round;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 26, 20, 10),
+      child: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(width: 8),
+            Text(
+              '$word at $closeTime',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _CheckoutBar extends StatelessWidget {
   const _CheckoutBar(
       {required this.hours,
@@ -473,7 +597,7 @@ class _CheckoutBar extends StatelessWidget {
         child: SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -483,16 +607,19 @@ class _CheckoutBar extends StatelessWidget {
                     Text('Check out',
                         style: TextStyle(
                             color: scheme.onInverseSurface,
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold)),
                     const SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, color: scheme.onInverseSurface),
+                    Icon(Icons.arrow_forward,
+                        size: 18, color: scheme.onInverseSurface),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 1),
                 Text(
                   '$hours hr · ${Money.format(priceCents)}',
-                  style: TextStyle(color: scheme.onInverseSurface.withValues(alpha: 0.85)),
+                  style: TextStyle(
+                      color: scheme.onInverseSurface.withValues(alpha: 0.80),
+                      fontSize: 13),
                 ),
               ],
             ),

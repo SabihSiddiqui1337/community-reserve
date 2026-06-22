@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +19,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+
+  bool _obscure = true;
+  bool _rememberMe = true;
 
   @override
   void dispose() {
@@ -49,9 +53,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     return Scaffold(
       body: BrandedBackground(
         child: SafeArea(
-          child: Center(
+          child: Align(
+            alignment: Alignment.topCenter,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: Form(
@@ -59,8 +64,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const BrandLogo(label: 'A', size: 72),
-                      const SizedBox(height: 24),
+                      const _AuthToggle(loginActive: true),
+                      const SizedBox(height: 28),
                       Text('Welcome back',
                           style: theme.textTheme.headlineSmall
                               ?.copyWith(fontWeight: FontWeight.bold)),
@@ -75,28 +80,67 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                           labelText: 'Email',
                           prefixIcon: Icon(Icons.mail_outline),
                         ),
-                        validator: (v) =>
-                            (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
+                        validator: (v) => (v == null || !v.contains('@'))
+                            ? 'Enter a valid email'
+                            : null,
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _password,
-                        obscureText: true,
-                        decoration: const InputDecoration(
+                        obscureText: _obscure,
+                        decoration: InputDecoration(
                           labelText: 'Password',
-                          prefixIcon: Icon(Icons.lock_outline),
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscure
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined),
+                            onPressed: () =>
+                                setState(() => _obscure = !_obscure),
+                          ),
                         ),
-                        validator: (v) =>
-                            (v == null || v.length < 6) ? 'Min 6 characters' : null,
+                        validator: (v) => (v == null || v.length < 6)
+                            ? 'Min 6 characters'
+                            : null,
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () =>
+                                  setState(() => _rememberMe = !_rememberMe),
+                              child: Row(
+                                children: [
+                                  Checkbox(
+                                    value: _rememberMe,
+                                    onChanged: (v) => setState(
+                                        () => _rememberMe = v ?? false),
+                                  ),
+                                  Flexible(
+                                    child: Text('Remember me',
+                                        style: theme.textTheme.bodyMedium),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () =>
+                                context.push(Routes.forgotPassword),
+                            child: const Text('Forgot password?'),
+                          ),
+                        ],
                       ),
                       if (state.hasError) ...[
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         Text(
                           _friendlyError(state.error!),
                           style: TextStyle(color: theme.colorScheme.error),
                         ),
                       ],
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
                       _DemoAccounts(
                         busy: state.isLoading,
                         onPick: _fillDemo,
@@ -108,14 +152,32 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                             ? const SizedBox(
                                 height: 20,
                                 width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Text('Sign in'),
                       ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () => context.go(Routes.signUp),
-                        child: const Text("New here? Create an account"),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: Text.rich(
+                          TextSpan(
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant),
+                            children: [
+                              const TextSpan(
+                                  text: "Don't have an account? "),
+                              TextSpan(
+                                text: 'Create an account',
+                                style: TextStyle(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () => context.go(Routes.signUp),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -129,9 +191,84 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   }
 }
 
+/// Segmented "Login | Sign up" pill at the top of both auth screens. The
+/// active segment is filled with the lime accent; tapping the other navigates.
+class _AuthToggle extends StatelessWidget {
+  const _AuthToggle({required this.loginActive});
+
+  final bool loginActive;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          _AuthToggleSegment(
+            label: 'Login',
+            active: loginActive,
+            onTap: loginActive ? null : () => context.go(Routes.signIn),
+          ),
+          _AuthToggleSegment(
+            label: 'Sign up',
+            active: !loginActive,
+            onTap: loginActive ? () => context.go(Routes.signUp) : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AuthToggleSegment extends StatelessWidget {
+  const _AuthToggleSegment({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: active ? theme.colorScheme.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            label,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: active
+                  ? theme.colorScheme.onPrimary
+                  : theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 String _friendlyError(Object e) {
   final s = e.toString();
-  if (s.contains('user-not-found') || s.contains('wrong-password') ||
+  if (s.contains('user-not-found') ||
+      s.contains('wrong-password') ||
       s.contains('invalid-credential')) {
     return 'Incorrect email or password.';
   }

@@ -11,6 +11,7 @@ import '../../features/admin/reports/presentation/reports_screen.dart';
 import '../../features/admin/reservations_calendar/presentation/admin_reservations_screen.dart';
 import '../../features/admin/settings/presentation/community_settings_screen.dart';
 import '../../features/auth/application/onboarding.dart';
+import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/sign_in_screen.dart';
 import '../../features/auth/presentation/sign_up_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
@@ -59,7 +60,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         case OnboardingStage.loading:
           return loc == Routes.splash ? null : Routes.splash;
         case OnboardingStage.signedOut:
-          return (loc == Routes.signIn || loc == Routes.signUp)
+          return (loc == Routes.signIn ||
+                  loc == Routes.signUp ||
+                  loc == Routes.forgotPassword)
               ? null
               : Routes.signIn;
         case OnboardingStage.needsCommunity:
@@ -81,8 +84,18 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: Routes.splash, builder: (_, _) => const SplashScreen()),
-      GoRoute(path: Routes.signIn, builder: (_, _) => const SignInScreen()),
-      GoRoute(path: Routes.signUp, builder: (_, _) => const SignUpScreen()),
+      // No transition between Login/Sign up so the tab toggle just swaps.
+      GoRoute(
+          path: Routes.signIn,
+          pageBuilder: (_, _) =>
+              const NoTransitionPage(child: SignInScreen())),
+      GoRoute(
+          path: Routes.signUp,
+          pageBuilder: (_, _) =>
+              const NoTransitionPage(child: SignUpScreen())),
+      GoRoute(
+          path: Routes.forgotPassword,
+          builder: (_, _) => const ForgotPasswordScreen()),
       GoRoute(
           path: Routes.joinCommunity,
           builder: (_, _) => const JoinCommunityScreen()),

@@ -34,11 +34,18 @@ export const cancelReservation = onCall(async (request) => {
   const communitySnap = await paths.community(communityId).get();
   const cutoffMinutes =
     (communitySnap.data()?.settings?.cancellationCutoffMinutes as number) ?? 60;
+  const allowance =
+    (communitySnap.data()?.settings?.cancellationAllowance as number) ?? 2;
 
   const start = (res.startTime as Timestamp).toDate();
   const end = (res.endTime as Timestamp).toDate();
   const minutesToStart = (start.getTime() - Date.now()) / 60_000;
   const isLate = minutesToStart < cutoffMinutes;
+
+  // A cancellation only counts toward the resident's cancellation count when it
+  // happens at or after the reservation start time. Cancelling before start is
+  // always free and never counts (PROJECT-BRIEF §4.6).
+  const counted = Date.now() >= start.getTime();
 
   // Prorated refund (basketball/pickleball only) — keep used minutes, refund
   // the remaining ones. Authoritative server calc.
@@ -81,6 +88,18 @@ export const cancelReservation = onCall(async (request) => {
       .update({ noShowCount: FieldValue.increment(1) });
   }
 
+  // At/after start → increment the canceller's cancellation count. Read the
+  // current value first so we can report the post-increment total back.
+  const membershipRef = paths.memberships(communityId).doc(uid);
+  let cancellationCount =
+    (((await membershipRef.get()).data()?.cancellationCount as number) ?? 0);
+  if (counted) {
+    await membershipRef.update({
+      cancellationCount: FieldValue.increment(1),
+    });
+    cancellationCount += 1;
+  }
+
   // Release the door credential.
   await new MockAccessProvider().revokeCredential({
     reservationId,
@@ -93,5 +112,12 @@ export const cancelReservation = onCall(async (request) => {
   // Ping the waitlist for the freed window.
   await notifyWaitlist(communityId, res.amenityId as string, start, end);
 
-  return { cancelled: true, countedAsNoShow: isLate, refundCents };
+  return {
+    cancelled: true,
+    countedAsNoShow: isLate,
+    refundCents,
+    counted,
+    cancellationCount,
+    allowance,
+  };
 });

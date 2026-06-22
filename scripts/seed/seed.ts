@@ -245,6 +245,63 @@ async function main(): Promise<void> {
     cancelledAt: null, paymentId: null,
   });
 
+  // Community Chat demo data for Maple Grove (demo-hoa).
+  // Fixed doc ids + .set() keep this idempotent across re-seeds.
+  const chatBase = "communities/demo-hoa";
+  const now = Timestamp.now().toMillis();
+  const ago = (mins: number) => Timestamp.fromMillis(now - mins * 60_000);
+
+  // Channels.
+  await db.doc(`${chatBase}/channels/general`).set({
+    name: "General",
+    isGeneral: true,
+    createdAt: Timestamp.fromMillis(now - 30 * 86_400_000),
+  });
+  await db.doc(`${chatBase}/channels/announcements`).set({
+    name: "Announcements",
+    isGeneral: false,
+    createdAt: Timestamp.fromMillis(now - 29 * 86_400_000),
+  });
+
+  // General channel messages (fixed ids → idempotent).
+  const generalMsgs = [
+    { id: "m1", senderId: "admin-uid", senderName: "Dana Director", text: "Welcome to the Maple Grove community chat! Use this space to coordinate court times and meet your neighbors.", offsetMin: 240 },
+    { id: "m2", senderId: "resident1-uid", senderName: "Alex Resident", text: "Thanks Dana! Anyone up for pickleball Saturday morning?", offsetMin: 180 },
+    { id: "m3", senderId: "admin-uid", senderName: "Dana Director", text: "There's a doubles bracket Saturday at 10am — sign up at the clubhouse.", offsetMin: 120 },
+    { id: "m4", senderId: "resident1-uid", senderName: "Alex Resident", text: "Perfect, I'll be there. 🎾", offsetMin: 30 },
+  ];
+  for (const m of generalMsgs) {
+    await db.doc(`${chatBase}/channels/general/messages/${m.id}`).set({
+      senderId: m.senderId,
+      senderName: m.senderName,
+      text: m.text,
+      createdAt: ago(m.offsetMin),
+    });
+  }
+
+  // One demo 1:1 DM thread between Alex and Sam.
+  const dmId = "dm-alex-sam";
+  await db.doc(`${chatBase}/dms/${dmId}`).set({
+    participantIds: ["resident1-uid", "resident2-uid"],
+    participantNames: ["Alex Resident", "Sam Resident"],
+    isGroup: false,
+    lastText: "Sounds good, see you at the court!",
+    lastAt: ago(15),
+    createdAt: ago(90),
+  });
+  const dmMsgs = [
+    { id: "dm1", senderId: "resident1-uid", senderName: "Alex Resident", text: "Hey Sam, want to split a court Saturday?", offsetMin: 60 },
+    { id: "dm2", senderId: "resident2-uid", senderName: "Sam Resident", text: "Sounds good, see you at the court!", offsetMin: 15 },
+  ];
+  for (const m of dmMsgs) {
+    await db.doc(`${chatBase}/dms/${dmId}/messages/${m.id}`).set({
+      senderId: m.senderId,
+      senderName: m.senderName,
+      text: m.text,
+      createdAt: ago(m.offsetMin),
+    });
+  }
+
   console.log("✓ Seed complete:");
   console.log("  Maple Grove HOA (demo-hoa)  code MAPLE  — admin@maplegrove.test");
   console.log("  Oakwood Villas (oakwood)    code OAK    — admin@oakwood.test");

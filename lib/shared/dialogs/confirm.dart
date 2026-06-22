@@ -11,20 +11,24 @@ Future<bool> confirmDiscard(BuildContext context) async {
       content: const Text("You haven't saved yet. Close without saving?"),
       actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       actions: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Keep editing'),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: FilledButton(
-            style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Discard'),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Keep editing'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                    backgroundColor: Theme.of(ctx).colorScheme.error),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Discard'),
+              ),
+            ),
+          ],
         ),
       ],
     ),

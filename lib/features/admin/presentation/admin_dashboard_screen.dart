@@ -13,17 +13,19 @@ class AdminDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final community = ref.watch(activeCommunityProvider);
+    // Reservations & Branding intentionally removed.
     final items = <_AdminItem>[
       _AdminItem('Residency approvals', Icons.how_to_reg_outlined,
-          Routes.adminApprovals),
+          const Color(0xFF22C55E), Routes.adminApprovals),
       _AdminItem('Amenities', Icons.sports_tennis_outlined,
-          Routes.adminAmenities),
-      _AdminItem('Reservations', Icons.calendar_month_outlined,
-          Routes.adminReservations),
-      _AdminItem('Reports', Icons.insights_outlined, Routes.adminReports),
-      _AdminItem('Branding', Icons.palette_outlined, Routes.adminBranding),
-      _AdminItem('Booking rules', Icons.tune, Routes.adminSettings),
-      _AdminItem('Members', Icons.groups_outlined, Routes.adminMembers),
+          const Color(0xFF3B82F6), Routes.adminAmenities),
+      _AdminItem(
+          'Reports', Icons.insights_outlined, const Color(0xFFA855F7),
+          Routes.adminReports),
+      _AdminItem('Booking rules', Icons.tune, const Color(0xFFF59E0B),
+          Routes.adminSettings),
+      _AdminItem('Members', Icons.groups_outlined, const Color(0xFF14B8A6),
+          Routes.adminMembers),
     ];
 
     final theme = Theme.of(context);
@@ -34,26 +36,28 @@ class AdminDashboardScreen extends ConsumerWidget {
         automaticallyImplyLeading: false,
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
         children: [
-          Text(community.name, style: theme.textTheme.headlineSmall
-              ?.copyWith(fontWeight: FontWeight.bold)),
+          Text(community.name,
+              style: theme.textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 2),
           Text('Community administration',
               style: theme.textTheme.bodyMedium
                   ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.05,
-            children: [
-              for (final it in items)
-                _AdminCard(item: it, onTap: () => context.go(it.route)),
-            ],
+          Card(
+            margin: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (var i = 0; i < items.length; i++) ...[
+                  _AdminRow(
+                      item: items[i], onTap: () => context.go(items[i].route)),
+                  if (i != items.length - 1)
+                    const Divider(height: 1, indent: 68),
+                ],
+              ],
+            ),
           ),
         ],
       ),
@@ -61,41 +65,37 @@ class AdminDashboardScreen extends ConsumerWidget {
   }
 }
 
-class _AdminCard extends StatelessWidget {
-  const _AdminCard({required this.item, required this.onTap});
+class _AdminRow extends StatelessWidget {
+  const _AdminRow({required this.item, required this.onTap});
   final _AdminItem item;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Material(
-      color: theme.colorScheme.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(20),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(item.icon,
-                    color: theme.colorScheme.onPrimary, size: 22),
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              height: 38,
+              width: 38,
+              decoration: BoxDecoration(
+                color: item.color,
+                borderRadius: BorderRadius.circular(11),
               ),
-              const SizedBox(height: 12),
-              Text(item.label,
+              child: Icon(item.icon, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(item.label,
                   style: theme.textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.w600)),
-            ],
-          ),
+            ),
+            Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant),
+          ],
         ),
       ),
     );
@@ -103,8 +103,9 @@ class _AdminCard extends StatelessWidget {
 }
 
 class _AdminItem {
-  const _AdminItem(this.label, this.icon, this.route);
+  const _AdminItem(this.label, this.icon, this.color, this.route);
   final String label;
   final IconData icon;
+  final Color color;
   final String route;
 }

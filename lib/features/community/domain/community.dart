@@ -33,6 +33,7 @@ abstract class CommunitySettings with _$CommunitySettings {
     @Default(3) int noShowThreshold,
     @Default(30) int noShowBanDays,
     @Default(60) int cancellationCutoffMinutes,
+    @Default(2) int cancellationAllowance,
   }) = _CommunitySettings;
 
   factory CommunitySettings.fromJson(Map<String, dynamic> json) =>

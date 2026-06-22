@@ -8,8 +8,8 @@ part of 'community.dart';
 
 _Branding _$BrandingFromJson(Map<String, dynamic> json) => _Branding(
   logoUrl: json['logoUrl'] as String?,
-  primaryColor: json['primaryColor'] as String? ?? '#C9A24A',
-  accentColor: json['accentColor'] as String? ?? '#E4C16B',
+  primaryColor: json['primaryColor'] as String? ?? '#FFFFFF',
+  accentColor: json['accentColor'] as String? ?? '#C7CBD1',
   backgroundUrl: json['backgroundUrl'] as String?,
   theme: json['theme'] as String? ?? 'dark',
 );
@@ -34,6 +34,8 @@ _CommunitySettings _$CommunitySettingsFromJson(Map<String, dynamic> json) =>
       noShowBanDays: (json['noShowBanDays'] as num?)?.toInt() ?? 30,
       cancellationCutoffMinutes:
           (json['cancellationCutoffMinutes'] as num?)?.toInt() ?? 60,
+      cancellationAllowance:
+          (json['cancellationAllowance'] as num?)?.toInt() ?? 2,
     );
 
 Map<String, dynamic> _$CommunitySettingsToJson(_CommunitySettings instance) =>
@@ -45,6 +47,7 @@ Map<String, dynamic> _$CommunitySettingsToJson(_CommunitySettings instance) =>
       'noShowThreshold': instance.noShowThreshold,
       'noShowBanDays': instance.noShowBanDays,
       'cancellationCutoffMinutes': instance.cancellationCutoffMinutes,
+      'cancellationAllowance': instance.cancellationAllowance,
     };
 
 _FeatureFlags _$FeatureFlagsFromJson(Map<String, dynamic> json) =>

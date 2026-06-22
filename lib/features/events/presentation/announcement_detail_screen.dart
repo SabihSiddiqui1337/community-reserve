@@ -20,20 +20,24 @@ class AnnouncementDetailScreen extends ConsumerWidget {
         content: Text('"${announcement.title}" will be removed for everyone.'),
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep'),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(ctx).colorScheme.error),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete'),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Keep'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: Theme.of(ctx).colorScheme.error),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Delete'),
+                ),
+              ),
+            ],
           ),
         ],
       ),

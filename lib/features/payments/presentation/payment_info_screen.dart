@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/widgets/app_snack.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/data/user_repository.dart';
 import '../domain/payment_method.dart';
@@ -47,8 +48,7 @@ class _PaymentInfoScreenState extends ConsumerState<PaymentInfoScreen> {
       await ref.read(userRepositoryProvider).selectCard(_uid, id);
     }
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Payment method saved')));
+      showSnack(context, 'Payment method saved');
       Navigator.of(context).maybePop();
     }
   }

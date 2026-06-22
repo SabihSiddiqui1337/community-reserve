@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../shared/widgets/app_snack.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/data/user_repository.dart';
 
@@ -91,14 +92,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             photoUrl: photoUrl,
           );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profile updated')));
+        showSnack(context, 'Profile updated');
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not save. Please try again.')));
+        showSnack(context, 'Could not save. Please try again.');
       }
     } finally {
       if (mounted) setState(() => _saving = false);

@@ -2,99 +2,116 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../features/community/domain/community.dart';
-import 'app_colors.dart';
 
-/// Builds Material 3 [ThemeData] from a tenant's [Branding]. This is the heart
-/// of the white-label system: the *same* app reskins per community because the
-/// theme is derived from data loaded at runtime, never hardcoded.
+/// Fixed modern-dark theme: near-black canvas, white text, electric-lime accent
+/// (the look from the reference). Branding-driven colors were removed, so the
+/// app no longer reskins per tenant — these are the single source of truth.
 class AppTheme {
   const AppTheme._();
 
-  static ThemeData dark(Branding branding) =>
-      _build(branding, Brightness.dark);
+  // Core palette.
+  static const lime = Color(0xFFC8FA4B); // electric lime accent
+  static const onLime = Color(0xFF0A0A0A); // text/icons on lime
+  static const black = Color(0xFF0A0A0A); // scaffold background
+  static const surface1 = Color(0xFF15171C); // cards
+  static const surface2 = Color(0xFF1C1F26); // inputs / raised
+  static const outline = Color(0xFF2A2E37);
+  static const muted = Color(0xFF9BA1AC);
 
-  static ThemeData light(Branding branding) =>
-      _build(branding, Brightness.light);
+  // Signatures kept so existing callers compile; branding is ignored.
+  static ThemeData dark(Branding branding) => _build();
+  static ThemeData light(Branding branding) => _build();
+  static ThemeMode modeFor(Branding branding) => ThemeMode.dark;
 
-  /// The brightness a community prefers by default (`branding.theme`).
-  static ThemeMode modeFor(Branding branding) =>
-      branding.theme == 'light' ? ThemeMode.light : ThemeMode.dark;
-
-  static ThemeData _build(Branding branding, Brightness brightness) {
-    final primary = hexToColor(branding.primaryColor);
-    final accent = hexToColor(branding.accentColor);
-
-    final scheme = ColorScheme.fromSeed(
-      seedColor: primary,
-      brightness: brightness,
-      primary: primary,
-      secondary: accent,
+  static ThemeData _build() {
+    const scheme = ColorScheme.dark(
+      primary: lime,
+      onPrimary: onLime,
+      secondary: lime,
+      onSecondary: onLime,
+      surface: black,
+      onSurface: Colors.white,
+      surfaceContainerHighest: surface2,
+      surfaceContainerHigh: surface1,
+      surfaceContainer: surface1,
+      onSurfaceVariant: muted,
+      outline: outline,
+      outlineVariant: Color(0xFF20242C),
+      inverseSurface: Colors.white,
+      onInverseSurface: black,
+      error: Color(0xFFFF6B6B),
+      primaryContainer: Color(0xFF273A12),
+      onPrimaryContainer: lime,
+      secondaryContainer: Color(0xFF273A12),
+      onSecondaryContainer: lime,
     );
 
-    final base = ThemeData(brightness: brightness, useMaterial3: true);
-
-    // Cool obsidian for dark mode — a near-black canvas that lets the electric
-    // accent pop, modern and premium rather than warm/gold.
-    final isDark = brightness == Brightness.dark;
-    final scaffoldBg = isDark ? const Color(0xFF0A0A0F) : scheme.surface;
+    final base = ThemeData(brightness: Brightness.dark, useMaterial3: true);
 
     return base.copyWith(
       colorScheme: scheme,
-      scaffoldBackgroundColor: scaffoldBg,
-      textTheme: GoogleFonts.interTextTheme(base.textTheme),
-      appBarTheme: AppBarTheme(
+      scaffoldBackgroundColor: black,
+      textTheme: GoogleFonts.interTextTheme(base.textTheme)
+          .apply(bodyColor: Colors.white, displayColor: Colors.white),
+      appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
-        foregroundColor: scheme.onSurface,
+        foregroundColor: Colors.white,
       ),
-      navigationBarTheme: isDark
-          ? NavigationBarThemeData(
-              backgroundColor: const Color(0xFF101017),
-              elevation: 0,
-              indicatorColor: scheme.primary.withValues(alpha: 0.20),
-              labelTextStyle: WidgetStateProperty.resolveWith(
-                (states) => GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: states.contains(WidgetState.selected)
-                      ? scheme.primary
-                      : scheme.onSurfaceVariant,
-                ),
-              ),
-              iconTheme: WidgetStateProperty.resolveWith(
-                (states) => IconThemeData(
-                  color: states.contains(WidgetState.selected)
-                      ? scheme.primary
-                      : scheme.onSurfaceVariant,
-                ),
-              ),
-            )
-          : null,
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          backgroundColor: lime,
+          foregroundColor: onLime,
+          minimumSize: const Size.fromHeight(54),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
         ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          side: const BorderSide(color: outline),
+          minimumSize: const Size.fromHeight(52),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: lime),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: scheme.surfaceContainerHigh,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        color: surface1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: surface1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: surface1,
+        surfaceTintColor: Colors.transparent,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: scheme.surfaceContainerHighest,
+        fillColor: surface2,
+        hintStyle: const TextStyle(color: muted),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: lime, width: 1.5),
+        ),
       ),
+      dividerTheme: const DividerThemeData(color: Color(0xFF20242C)),
     );
   }
 }

@@ -6,14 +6,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../shared/money/money.dart';
+import '../../../shared/widgets/app_snack.dart';
 import '../../amenities/data/amenity_repository.dart';
+import '../../amenities/domain/amenity.dart';
 import '../../community/application/tenant_providers.dart';
 import '../data/reservation_repository.dart';
-import '../domain/refund.dart';
 import '../domain/reservation.dart';
 
 /// PIN/QR become visible this many minutes before the reservation starts.
 const _pinLeadMinutes = 10;
+
+/// The full booking charge in cents for a reservation: the amenity's per-hour
+/// price × the booked duration (in hours). Returns 0 when the amenity is free
+/// or the times are missing.
+int _chargeCents(Amenity? amenity, Reservation r) {
+  if (amenity == null || !amenity.pricing.isPaid) return 0;
+  final start = r.startTime;
+  final end = r.endTime;
+  if (start == null || end == null) return 0;
+  final minutes = end.difference(start).inMinutes;
+  if (minutes <= 0) return 0;
+  return (amenity.pricing.amountCents * (minutes / 60.0)).round();
+}
+
+/// A reservation is "past" once it is no longer live/upcoming — i.e. completed,
+/// cancelled, no-show, expired, or simply ended.
+bool _isPast(Reservation r) => !r.isUpcoming;
 
 /// Open the reservation detail as a modal dialog (with an X to close).
 Future<void> showReservationDetailDialog(
@@ -71,14 +89,11 @@ class _ReservationDetailDialogState
         }
         // No success toast — the PIN panel appearing is the confirmation.
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Access denied: ${res['reason']}')),
-        );
+        showSnack(context, 'Access denied: ${res['reason']}');
       }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message ?? 'Failed')));
+        showSnack(context, e.message ?? 'Failed');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -89,73 +104,156 @@ class _ReservationDetailDialogState
     final cid = ref.read(currentCommunityIdProvider);
     if (cid == null) return;
 
-    // Estimate the prorated refund (basketball/pickleball only) to show before
-    // confirming. The server recomputes the authoritative amount.
+    // The refund shown is the full booking charge (per-hour price × hours).
+    // For free amenities nothing was charged. The server recomputes the
+    // authoritative amount.
     final amenity = ref.read(amenityProvider(r.amenityId)).value;
-    int refundEstimate = 0;
-    if (amenity != null && r.startTime != null && r.endTime != null) {
-      refundEstimate = proratedRefundCents(
-        amenityType: amenity.type,
-        amountCentsPerHour: amenity.pricing.amountCents,
-        start: r.startTime!,
-        end: r.endTime!,
-      );
-    }
-    final refundLine = refundEstimate > 0
-        ? "You'll be refunded about ${Money.format(refundEstimate)} for the time remaining."
-        : 'Cancelling close to the start time may count as a no-show.';
+    final paid = amenity?.pricing.isPaid ?? false;
+    final refundEstimate = _chargeCents(amenity, r);
+    final hasRefund = paid && refundEstimate > 0;
+
+    // A cancellation only counts once the reservation has started. Compute
+    // whether we're at/after start and, if so, how many late cancellations the
+    // resident has left (allowance − already-counted), floored at zero.
+    final started = r.startTime != null && !DateTime.now().isBefore(r.startTime!);
+    final community = ref.read(activeCommunityProvider);
+    final membership = ref.read(currentMembershipProvider);
+    final remaining = (community.settings.cancellationAllowance -
+            (membership?.cancellationCount ?? 0))
+        .clamp(0, 1 << 31);
 
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Cancel reservation?'),
-        content: Text(refundLine),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        actions: [
-          Row(
+      builder: (dialogContext) {
+        final dialogTheme = Theme.of(dialogContext);
+        return AlertDialog(
+          title: const Text('Cancel reservation?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(dialogContext, false),
-                  child: const Text('Keep'),
+              // Big, bold refund amount (or a clear "free" message).
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                decoration: BoxDecoration(
+                  color: dialogTheme.colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    if (hasRefund) ...[
+                      Text(
+                        Money.format(refundEstimate),
+                        style: dialogTheme.textTheme.displaySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: dialogTheme.colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        "You'll be refunded this amount.",
+                        style: dialogTheme.textTheme.bodyMedium,
+                      ),
+                    ] else ...[
+                      Icon(Icons.savings_outlined,
+                          size: 32,
+                          color: dialogTheme.colorScheme.onSurfaceVariant),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No payment was charged.',
+                        style: dialogTheme.textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                      backgroundColor:
-                          Theme.of(dialogContext).colorScheme.error),
-                  onPressed: () => Navigator.pop(dialogContext, true),
-                  child: const Text('Cancel it'),
-                ),
+              const SizedBox(height: 12),
+              Text(
+                started
+                    ? 'Cancelling now ends your reservation.'
+                    : 'Cancelling before the start time is free.',
+                textAlign: TextAlign.center,
+                style: dialogTheme.textTheme.bodySmall
+                    ?.copyWith(color: dialogTheme.colorScheme.onSurfaceVariant),
               ),
+              if (started) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: dialogTheme.colorScheme.error.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Tooltip(
+                        message: 'A cancellation only counts if made after the '
+                            'reservation start time.',
+                        child: Icon(
+                          Icons.info_outline,
+                          size: 20,
+                          color: dialogTheme.colorScheme.error,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'This will count toward your booking cancellations. '
+                          'You have $remaining left.',
+                          style: dialogTheme.textTheme.bodySmall?.copyWith(
+                            color: dialogTheme.colorScheme.error,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
-        ],
-      ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          actions: [
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    child: const Text('Keep'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                        backgroundColor: dialogTheme.colorScheme.error),
+                    onPressed: () => Navigator.pop(dialogContext, true),
+                    child: const Text('Cancel it'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
+    // The confirm dialog has already popped (synchronous Navigator.pop above),
+    // so the UI dismisses immediately — the server call runs after.
     if (confirm != true) return;
     setState(() => _busy = true);
     try {
-      final result = await ref
+      await ref
           .read(reservationRepositoryProvider)
           .cancel(communityId: cid, reservationId: r.id);
-      final refunded = (result['refundCents'] as num?)?.toInt() ?? 0;
       if (mounted) {
         Navigator.of(context).pop(); // close the detail dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(refunded > 0
-                ? 'Reservation cancelled. ${Money.format(refunded)} refunded.'
-                : 'Reservation cancelled.'),
-          ),
-        );
+        showSnack(context, 'Reservation cancelled.');
       }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message ?? 'Cancel failed')));
+        showSnack(context, e.message ?? 'Cancel failed');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -212,6 +310,7 @@ class _ReservationDetailDialogState
                     padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
                     child: _Body(
                       reservation: r,
+                      amenity: amenity,
                       amenityName: amenity?.name ?? 'Amenity',
                       pin: pinCache[r.id],
                       busy: _busy,
@@ -232,6 +331,7 @@ class _ReservationDetailDialogState
 class _Body extends StatelessWidget {
   const _Body({
     required this.reservation,
+    required this.amenity,
     required this.amenityName,
     required this.pin,
     required this.busy,
@@ -240,6 +340,7 @@ class _Body extends StatelessWidget {
   });
 
   final Reservation reservation;
+  final Amenity? amenity;
   final String amenityName;
   final String? pin;
   final bool busy;
@@ -248,8 +349,21 @@ class _Body extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final r = reservation;
+    // Past reservations get a static summary + payment outcome instead of the
+    // live countdown / PIN / cancel controls.
+    if (_isPast(r)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _InfoCard(reservation: r, amenityName: amenityName),
+          const SizedBox(height: 14),
+          _PaymentOutcome(reservation: r, amenity: amenity),
+        ],
+      );
+    }
+
+    final theme = Theme.of(context);
     final start = r.startTime;
     final end = r.endTime;
     final now = DateTime.now();
@@ -267,41 +381,7 @@ class _Body extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(amenityName,
-                        style: theme.textTheme.titleLarge
-                            ?.copyWith(fontWeight: FontWeight.bold)),
-                  ),
-                  _StatusChip(status: r.status),
-                ],
-              ),
-              const SizedBox(height: 10),
-              if (start != null)
-                _InfoLine(
-                    icon: Icons.event,
-                    text: DateFormat('EEEE, MMMM d').format(start)),
-              if (start != null && end != null)
-                _InfoLine(
-                  icon: Icons.schedule,
-                  text:
-                      '${DateFormat('h:mm a').format(start)} – ${DateFormat('h:mm a').format(end)}',
-                ),
-              if (r.court != null)
-                _InfoLine(icon: Icons.sports_tennis, text: 'Court ${r.court}'),
-            ],
-          ),
-        ),
+        _InfoCard(reservation: r, amenityName: amenityName),
         const SizedBox(height: 14),
         _Countdown(
             start: start,
@@ -354,6 +434,162 @@ class _Body extends StatelessWidget {
   }
 }
 
+/// The amenity name + status + date/time/court summary card. Shared by the
+/// live and past variants of the dialog.
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({required this.reservation, required this.amenityName});
+  final Reservation reservation;
+  final String amenityName;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final r = reservation;
+    final start = r.startTime;
+    final end = r.endTime;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(amenityName,
+                    style: theme.textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+              ),
+              _StatusChip(status: r.status),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (start != null)
+            _InfoLine(
+                icon: Icons.event,
+                text: DateFormat('EEEE, MMMM d').format(start)),
+          if (start != null && end != null)
+            _InfoLine(
+              icon: Icons.schedule,
+              text:
+                  '${DateFormat('h:mm a').format(start)} – ${DateFormat('h:mm a').format(end)}',
+            ),
+          if (r.court != null)
+            _InfoLine(icon: Icons.sports_tennis, text: 'Court ${r.court}'),
+        ],
+      ),
+    );
+  }
+}
+
+/// Payment outcome for a PAST reservation, derived from its status + whether a
+/// payment existed (`paymentId`) + the amenity charge (per-hour × hours).
+class _PaymentOutcome extends StatelessWidget {
+  const _PaymentOutcome({required this.reservation, required this.amenity});
+  final Reservation reservation;
+  final Amenity? amenity;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final r = reservation;
+    final charge = _chargeCents(amenity, r);
+    // A payment existed if the amenity is paid AND a paymentId was recorded.
+    final wasPaid =
+        (amenity?.pricing.isPaid ?? false) && r.paymentId != null && charge > 0;
+    final amount = Money.format(charge);
+
+    late final IconData icon;
+    late final Color color;
+    late final String title;
+    String? subtitle;
+
+    switch (r.status) {
+      case ReservationStatus.completed:
+        if (wasPaid) {
+          icon = Icons.check_circle;
+          color = theme.colorScheme.primary;
+          title = 'Charged $amount';
+          subtitle = 'Payment completed for this booking.';
+        } else {
+          icon = Icons.check_circle_outline;
+          color = theme.colorScheme.onSurfaceVariant;
+          title = 'Completed';
+          subtitle = 'No payment was charged.';
+        }
+      case ReservationStatus.cancelled:
+        if (wasPaid) {
+          icon = Icons.replay_circle_filled;
+          color = theme.colorScheme.primary;
+          title = 'Refunded $amount';
+          subtitle = 'This booking was cancelled and fully refunded.';
+        } else {
+          icon = Icons.cancel_outlined;
+          color = theme.colorScheme.onSurfaceVariant;
+          title = 'Cancelled — no payment was charged';
+        }
+      case ReservationStatus.noShow:
+        icon = Icons.report_gmailerrorred;
+        color = theme.colorScheme.error;
+        title = wasPaid ? 'Charged $amount (no-show)' : 'No-show';
+        subtitle = wasPaid ? null : 'No payment was charged.';
+      case ReservationStatus.expired:
+        icon = Icons.timer_off;
+        color = theme.colorScheme.onSurfaceVariant;
+        title = wasPaid ? 'Charged $amount (expired)' : 'Expired';
+        subtitle = wasPaid ? null : 'No payment was charged.';
+      case ReservationStatus.booked:
+      case ReservationStatus.checkedIn:
+        // Not reachable here (those are "upcoming"), but handle gracefully.
+        icon = Icons.event_available;
+        color = theme.colorScheme.onSurfaceVariant;
+        title = wasPaid ? 'Charged $amount' : 'No payment was charged.';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('PAYMENT',
+                    style: TextStyle(
+                        letterSpacing: 1.2,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.onSurfaceVariant)),
+                const SizedBox(height: 4),
+                Text(title,
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold, color: color)),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant)),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _InfoLine extends StatelessWidget {
   const _InfoLine({required this.icon, required this.text});
   final IconData icon;
@@ -390,45 +626,48 @@ class _Countdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final now = DateTime.now();
+    final running = (checkedIn || active) && end != null && now.isBefore(end!);
     String label;
     String value;
-    if (checkedIn && end != null && now.isBefore(end!)) {
-      // After check-in: show time left in the reservation, not "starts in".
+    IconData icon;
+    if (running) {
+      // After check-in / while live: show time left in the reservation.
       label = 'Time remaining';
       value = _fmt(end!.difference(now));
-    } else if (active && end != null) {
-      label = 'Time remaining';
-      value = _fmt(end!.difference(now));
+      icon = Icons.timelapse;
     } else if (start != null && start!.isAfter(now)) {
       label = 'Starts in';
       value = _fmt(start!.difference(now));
+      icon = Icons.hourglass_top;
     } else {
       label = 'Status';
       value = 'Ended';
+      icon = Icons.check_circle_outline;
     }
+    // Compact pill: small label on the left, medium mono time on the right.
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 22),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
-        ),
-        borderRadius: BorderRadius.circular(18),
+        color: theme.colorScheme.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: theme.colorScheme.primary.withValues(alpha: 0.35)),
       ),
-      child: Column(
+      child: Row(
         children: [
+          Icon(icon, size: 18, color: theme.colorScheme.primary),
+          const SizedBox(width: 10),
           Text(label.toUpperCase(),
               style: TextStyle(
-                  color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
-                  letterSpacing: 1.5,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
+                  color: theme.colorScheme.primary,
+                  letterSpacing: 1.2,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700)),
+          const Spacer(),
           Text(value,
-              style: TextStyle(
-                  color: theme.colorScheme.onPrimary,
-                  fontSize: 38,
-                  fontWeight: FontWeight.bold,
+              style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w700,
                   fontFeatures: const [FontFeature.tabularFigures()])),
         ],
       ),

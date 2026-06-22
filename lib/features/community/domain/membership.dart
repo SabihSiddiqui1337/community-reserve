@@ -25,6 +25,7 @@ abstract class Membership with _$Membership {
     @TimestampConverter() DateTime? reviewedAt,
     String? rejectionReason,
     @Default(0) int noShowCount,
+    @Default(0) int cancellationCount,
     @TimestampConverter() DateTime? bannedUntil,
   }) = _Membership;
 

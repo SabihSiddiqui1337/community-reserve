@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/routes.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../shared/widgets/app_snack.dart';
 import '../../../community/application/tenant_providers.dart';
 import '../../../community/data/community_repository.dart';
 
@@ -54,9 +55,7 @@ class _BrandingEditorScreenState
     });
     if (mounted) {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Branding saved — theme updated live.')),
-      );
+      showSnack(context, 'Branding saved — theme updated live.');
     }
   }
 

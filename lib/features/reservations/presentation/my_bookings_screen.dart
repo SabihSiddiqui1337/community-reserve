@@ -94,15 +94,11 @@ class _BookingsList extends StatelessWidget {
       itemBuilder: (context, i) {
         final r = items[i];
         final active = r.isActiveNow;
-        // Cancelled / no-show / expired bookings aren't tappable.
-        final clickable = r.status == ReservationStatus.booked ||
-            r.status == ReservationStatus.checkedIn ||
-            r.status == ReservationStatus.completed;
+        // Every card opens the detail dialog — upcoming ones show the live
+        // countdown/PIN/cancel flow, past ones show a summary + payment outcome.
         return Card(
           child: ListTile(
-            onTap: clickable
-                ? () => showReservationDetailDialog(context, r.id)
-                : null,
+            onTap: () => showReservationDetailDialog(context, r.id),
             leading: CircleAvatar(
               backgroundColor: active
                   ? _activeGreen
@@ -142,8 +138,11 @@ Widget _trailing(ThemeData theme, ReservationStatus status, bool active) {
   switch (status) {
     case ReservationStatus.booked:
     case ReservationStatus.checkedIn:
-    case ReservationStatus.completed:
       return const Icon(Icons.chevron_right);
+    case ReservationStatus.completed:
+      return const Text('COMPLETED',
+          style: TextStyle(
+              color: _activeGreen, fontWeight: FontWeight.w700, fontSize: 12));
     case ReservationStatus.cancelled:
     case ReservationStatus.noShow:
     case ReservationStatus.expired:

@@ -83,6 +83,7 @@ class AmenitiesManagerScreen extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true, // cover the floating nav bar
       isDismissible: false, // close only via the X (with a discard prompt)
       enableDrag: false,
       builder: (_) => Padding(
@@ -109,6 +110,7 @@ class _AmenityEditorState extends ConsumerState<_AmenityEditor> {
   AmenityStatus _status = AmenityStatus.active;
   int _openHour = 6;
   int _closeHour = 22;
+  bool _open24 = false;
   bool _isPaid = false;
   bool _dirty = false;
   bool _saving = false;
@@ -129,6 +131,7 @@ class _AmenityEditorState extends ConsumerState<_AmenityEditor> {
     _status = a?.status ?? AmenityStatus.active;
     _openHour = a?.openHour ?? 6;
     _closeHour = a?.closeHour ?? 22;
+    _open24 = (a?.openHour == 0 && a?.closeHour == 24);
     _isPaid = a?.pricing.isPaid ?? false;
   }
 
@@ -173,8 +176,8 @@ class _AmenityEditorState extends ConsumerState<_AmenityEditor> {
       description: _desc.text.trim(),
       status: _status,
       slotMinutes: 60, // bookings are always 1-hour slots
-      openHour: _openHour,
-      closeHour: _closeHour,
+      openHour: _open24 ? 0 : _openHour,
+      closeHour: _open24 ? 24 : _closeHour,
       pricing: AmenityPricing(
         isPaid: _isPaid,
         amountCents:
@@ -211,20 +214,24 @@ class _AmenityEditorState extends ConsumerState<_AmenityEditor> {
         content: Text('"${a.name}" will be removed.'),
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(ctx).colorScheme.error),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete'),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Cancel'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: Theme.of(ctx).colorScheme.error),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Delete'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -278,6 +285,7 @@ class _AmenityEditorState extends ConsumerState<_AmenityEditor> {
             const SizedBox(height: 8),
             TextField(
                 controller: _name,
+                textCapitalization: TextCapitalization.words,
                 onChanged: (_) => _markDirty(),
                 decoration: const InputDecoration(labelText: 'Name')),
             const SizedBox(height: 12),
@@ -303,23 +311,39 @@ class _AmenityEditorState extends ConsumerState<_AmenityEditor> {
                 style: theme.textTheme.labelLarge
                     ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             const SizedBox(height: 8),
-            Row(children: [
-              Expanded(
-                child: _HourTile(
-                    label: 'Opens',
-                    value: _hourLabel(_openHour),
-                    onTap: () => _pickHour(open: true)),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Open 24 hours'),
+              subtitle: const Text('Available all day, every day'),
+              value: _open24,
+              onChanged: (v) => setState(() {
+                _open24 = v;
+                _markDirty();
+              }),
+            ),
+            Opacity(
+              opacity: _open24 ? 0.4 : 1,
+              child: IgnorePointer(
+                ignoring: _open24,
+                child: Row(children: [
+                  Expanded(
+                    child: _HourTile(
+                        label: 'Opens',
+                        value: _open24 ? '12:00 AM' : _hourLabel(_openHour),
+                        onTap: () => _pickHour(open: true)),
+                  ),
+                  const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Text('–')),
+                  Expanded(
+                    child: _HourTile(
+                        label: 'Closes',
+                        value: _open24 ? '12:00 AM' : _hourLabel(_closeHour),
+                        onTap: () => _pickHour(open: false)),
+                  ),
+                ]),
               ),
-              const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: Text('–')),
-              Expanded(
-                child: _HourTile(
-                    label: 'Closes',
-                    value: _hourLabel(_closeHour),
-                    onTap: () => _pickHour(open: false)),
-              ),
-            ]),
+            ),
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,

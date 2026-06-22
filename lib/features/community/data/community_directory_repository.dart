@@ -17,6 +17,13 @@ class CommunityDirectoryRepository {
   CommunitySummary _fromDoc(DocumentSnapshot<Map<String, dynamic>> d) =>
       CommunitySummary.fromJson({...?d.data(), 'id': d.id});
 
+  /// All communities in the public directory (small list; used by the Sign-up
+  /// screen to show everything by default and filter client-side).
+  Future<List<CommunitySummary>> fetchAll() async {
+    final q = await _col.orderBy('name').get();
+    return q.docs.map(_fromDoc).toList();
+  }
+
   /// Resolve a join code (case-insensitive) to a single community.
   Future<CommunitySummary?> lookupByCode(String code) async {
     final normalized = code.trim().toUpperCase();

@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 
-import '../../../core/widgets/branded_background.dart';
 import '../../../shared/dialogs/confirm.dart';
 import '../../auth/data/user_repository.dart';
 import '../../community/application/tenant_providers.dart';
@@ -23,56 +22,69 @@ class EventsScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      floatingActionButton: isAdmin
-          ? FloatingActionButton.extended(
-              onPressed: () => _compose(context, ref),
-              icon: const Icon(Icons.edit_outlined),
-              label: const Text('Post'),
-            )
-          : null,
-      body: BrandedBackground(
-        child: SafeArea(
-          child: announcements.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Error: $e')),
-            data: (list) => CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Welcome to', style: theme.textTheme.bodyMedium),
-                        Text(community.name,
-                            style: theme.textTheme.headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 16),
-                        Text('Events & announcements',
-                            style: theme.textTheme.titleMedium),
-                      ],
-                    ),
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: announcements.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error: $e')),
+          data: (list) => CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Welcome to',
+                                    style: theme.textTheme.bodyMedium),
+                                Text(community.name,
+                                    style: theme.textTheme.headlineSmall
+                                        ?.copyWith(
+                                            fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                          if (isAdmin)
+                            IconButton(
+                              tooltip: 'Add Event or Announcement',
+                              icon: Icon(Icons.add,
+                                  color: theme.colorScheme.primary),
+                              onPressed: () => _compose(context, ref),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text('Events & announcements',
+                          style: theme.textTheme.titleMedium),
+                    ],
                   ),
                 ),
-                if (list.isEmpty)
-                  const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(child: Text('No announcements yet.')),
-                  )
-                else
-                  SliverList.builder(
-                    itemCount: list.length,
-                    itemBuilder: (context, i) => Padding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                      child: _AnnouncementCard(announcement: list[i])
-                          .animate()
-                          .fadeIn(delay: (i * 60).ms)
-                          .slideY(begin: 0.1),
-                    ),
+              ),
+              if (list.isEmpty)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: Text('No announcements yet.')),
+                )
+              else
+                SliverList.builder(
+                  itemCount: list.length,
+                  itemBuilder: (context, i) => Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                    child: _AnnouncementCard(announcement: list[i])
+                        .animate()
+                        .fadeIn(delay: (i * 60).ms)
+                        .slideY(begin: 0.1),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ),
@@ -82,9 +94,11 @@ class EventsScreen extends ConsumerWidget {
   Future<void> _compose(BuildContext context, WidgetRef ref) async {
     final titleCtl = TextEditingController();
     final bodyCtl = TextEditingController();
+    var type = 'announcement';
     final posted = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true, // cover the floating nav bar
       isDismissible: false, // close only via the X (with a discard prompt)
       enableDrag: false,
       builder: (context) {
@@ -95,48 +109,67 @@ class EventsScreen extends ConsumerWidget {
           if (context.mounted) Navigator.pop(context, false);
         }
 
-        return PopScope(
-          canPop: false,
-          onPopInvokedWithResult: (didPop, _) {
-            if (!didPop) close();
-          },
-          child: Padding(
-            padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text('New announcement',
-                          style: Theme.of(context).textTheme.titleLarge),
-                    ),
-                    IconButton(
-                        icon: const Icon(Icons.close), onPressed: close),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: titleCtl,
-                  decoration: const InputDecoration(labelText: 'Title'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: bodyCtl,
-                  maxLines: 4,
-                  decoration: const InputDecoration(labelText: 'Message'),
-                ),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Post'),
-                ),
-              ],
+        return StatefulBuilder(
+          builder: (context, setState) => PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, _) {
+              if (!didPop) close();
+            },
+            child: Padding(
+              padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 20,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('New post',
+                            style: Theme.of(context).textTheme.titleLarge),
+                      ),
+                      IconButton(
+                          icon: const Icon(Icons.close), onPressed: close),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Announcement'),
+                        selected: type == 'announcement',
+                        onSelected: (_) =>
+                            setState(() => type = 'announcement'),
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('Event'),
+                        selected: type == 'event',
+                        onSelected: (_) => setState(() => type = 'event'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: titleCtl,
+                    decoration: const InputDecoration(labelText: 'Title'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: bodyCtl,
+                    maxLines: 4,
+                    decoration: const InputDecoration(labelText: 'Message'),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Post'),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -153,6 +186,7 @@ class EventsScreen extends ConsumerWidget {
             title: titleCtl.text.trim(),
             body: bodyCtl.text.trim(),
             authorName: author,
+            type: type,
           ),
         );
   }
@@ -177,20 +211,24 @@ class _AnnouncementCard extends ConsumerWidget {
         content: Text('"${announcement.title}" will be removed for everyone.'),
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Keep'),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(ctx).colorScheme.error),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete'),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Keep'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: Theme.of(ctx).colorScheme.error),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Delete'),
+                ),
+              ),
+            ],
           ),
         ],
       ),

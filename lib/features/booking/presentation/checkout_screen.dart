@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/router/routes.dart';
 import '../../../shared/money/money.dart';
+import '../../../shared/widgets/app_snack.dart';
 import '../../amenities/data/amenity_repository.dart';
 import '../../auth/data/user_repository.dart';
 import '../../auth/domain/app_user.dart';
@@ -83,14 +84,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         timezoneName: community.timezone,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Reservation confirmed!')));
+        showSnack(context, 'Reservation confirmed!');
         context.go(Routes.myBookings);
       }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message ?? 'Failed')));
+        showSnack(context, e.message ?? 'Failed');
       }
     } finally {
       if (mounted) setState(() => _busy = false);

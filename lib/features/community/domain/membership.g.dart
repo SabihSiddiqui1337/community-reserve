@@ -21,6 +21,7 @@ _Membership _$MembershipFromJson(Map<String, dynamic> json) => _Membership(
   reviewedAt: const TimestampConverter().fromJson(json['reviewedAt']),
   rejectionReason: json['rejectionReason'] as String?,
   noShowCount: (json['noShowCount'] as num?)?.toInt() ?? 0,
+  cancellationCount: (json['cancellationCount'] as num?)?.toInt() ?? 0,
   bannedUntil: const TimestampConverter().fromJson(json['bannedUntil']),
 );
 
@@ -36,6 +37,7 @@ Map<String, dynamic> _$MembershipToJson(_Membership instance) =>
       'reviewedAt': const TimestampConverter().toJson(instance.reviewedAt),
       'rejectionReason': instance.rejectionReason,
       'noShowCount': instance.noShowCount,
+      'cancellationCount': instance.cancellationCount,
       'bannedUntil': const TimestampConverter().toJson(instance.bannedUntil),
     };
 

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../community/application/tenant_providers.dart';
+import '../../community/data/membership_repository.dart';
 import '../data/auth_repository.dart';
 import '../data/user_repository.dart';
 import '../domain/app_user.dart';
@@ -19,15 +20,34 @@ class AuthController extends Notifier<AsyncValue<void>> {
     return !state.hasError;
   }
 
-  Future<bool> signUp(String name, String email, String password) async {
+  /// Creates the auth account + user profile and, when [communityId] is given,
+  /// a pending membership in that community so the onboarding gate advances to
+  /// residency. [phone] is stored on the profile when provided.
+  Future<bool> signUp(
+    String name,
+    String email,
+    String password, {
+    String? communityId,
+    String? phone,
+  }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final cred =
           await ref.read(authRepositoryProvider).signUp(email.trim(), password);
       final uid = cred.user!.uid;
       await ref.read(userRepositoryProvider).ensureProfile(
-            AppUser(uid: uid, name: name.trim(), email: email.trim()),
+            AppUser(
+              uid: uid,
+              name: name.trim(),
+              email: email.trim(),
+              phone: phone?.trim() ?? '',
+            ),
           );
+      if (communityId != null && communityId.isNotEmpty) {
+        // Mirrors the join flow: creates a pending membership (residencyStatus
+        // defaults to pending) keyed by uid in the chosen community.
+        await ref.read(membershipRepositoryProvider).join(communityId, uid);
+      }
     });
     return !state.hasError;
   }

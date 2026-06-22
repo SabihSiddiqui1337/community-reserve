@@ -10,19 +10,9 @@ class BrandedBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            scheme.surface,
-            Color.alphaBlend(scheme.primary.withValues(alpha: 0.10), scheme.surface),
-            Color.alphaBlend(scheme.secondary.withValues(alpha: 0.08), scheme.surface),
-          ],
-        ),
-      ),
+    // Branding/tints were removed — keep a plain black canvas everywhere.
+    return ColoredBox(
+      color: Theme.of(context).colorScheme.surface,
       child: child,
     );
   }

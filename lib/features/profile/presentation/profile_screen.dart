@@ -86,21 +86,52 @@ class ProfileScreen extends ConsumerWidget {
               leading: const Icon(Icons.person_outline),
               title: const Text('Account',
                   style: TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: const Text('Personal info, payment methods, standing'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push(Routes.account),
             ),
           ),
           const SizedBox(height: 28),
           OutlinedButton.icon(
-            onPressed: () =>
-                ref.read(authControllerProvider.notifier).signOut(),
+            onPressed: () => _confirmSignOut(context, ref),
             icon: const Icon(Icons.logout),
             label: const Text('Sign out'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text('Are you sure you want to sign out?'),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Cancel'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text('Sign out'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await ref.read(authControllerProvider.notifier).signOut();
+    }
   }
 
   String _residencyLabel(ResidencyStatus? s) => switch (s) {
