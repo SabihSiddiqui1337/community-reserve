@@ -1,6 +1,8 @@
 # PROJECT BRIEF — Community Amenity Reservation Platform (Flutter)
 
 > **How to use this file:** Paste this whole document into Claude Code as the opening prompt. It is both the spec and the working instructions. Build in the phases listed at the bottom. Pause at the ⛳ checkpoints and ask me before moving on.
+>
+> **Reusable blueprint:** `PLATFORM-PLAYBOOK.md` is the generic, app-agnostic version of everything actually built here — auth, payments, PIN/QR access, multi-tenancy, admin, booking rules, chat, theming, and the web-deploy gotchas — with a phased build order. For a brand-new project, start from the playbook and just swap the domain nouns; don't re-derive this logic.
 
 ---
 
