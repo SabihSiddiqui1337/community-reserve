@@ -13,7 +13,8 @@ class _Branch {
   static const book = 1;
   static const bookings = 2;
   static const admin = 3;
-  static const profile = 4;
+  static const profile = 4; // the "More" tab
+  static const hoa = 5;
 }
 
 class _Tab {
@@ -24,25 +25,9 @@ class _Tab {
   final String label;
 }
 
-const _residentTabs = <_Tab>[
-  _Tab(_Branch.events, Icons.campaign_outlined, Icons.campaign, 'Events'),
-  _Tab(_Branch.book, Icons.add_circle_outline, Icons.add_circle, 'Book'),
-  _Tab(_Branch.bookings, Icons.confirmation_number_outlined,
-      Icons.confirmation_number, 'Bookings'),
-  _Tab(_Branch.profile, Icons.person_outline, Icons.person, 'Profile'),
-];
-
-const _adminTabs = <_Tab>[
-  _Tab(_Branch.events, Icons.campaign_outlined, Icons.campaign, 'Events'),
-  _Tab(_Branch.book, Icons.add_circle_outline, Icons.add_circle, 'Book'),
-  _Tab(_Branch.bookings, Icons.confirmation_number_outlined,
-      Icons.confirmation_number, 'Bookings'),
-  _Tab(_Branch.admin, Icons.shield_outlined, Icons.shield, 'Admin'),
-  _Tab(_Branch.profile, Icons.person_outline, Icons.person, 'Profile'),
-];
-
 /// App shell: a floating, animated bottom navigation pill (the highlight slides
-/// to the selected tab). The Admin tab only appears for community admins.
+/// to the selected tab). The HOA tab appears only when the community has a
+/// resident portal; Admin is no longer a tab (it's a row inside "More").
 class MainShell extends ConsumerWidget {
   const MainShell({super.key, required this.navigationShell});
 
@@ -50,12 +35,32 @@ class MainShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isAdmin = ref.watch(isAdminProvider);
+    final community = ref.watch(activeCommunityProvider);
+    final hasPortal = (community.residentPortalUrl ?? '').trim().isNotEmpty;
     ref.watch(fcmRegistrationProvider); // best-effort push registration
-    final tabs = isAdmin ? _adminTabs : _residentTabs;
 
-    var selected =
-        tabs.indexWhere((t) => t.branch == navigationShell.currentIndex);
+    // Order: Events · Book · Bookings · [HOA] · More. HOA sits right before
+    // More, and only shows when a resident portal is configured.
+    final tabs = <_Tab>[
+      const _Tab(_Branch.events, Icons.campaign_outlined, Icons.campaign,
+          'Events'),
+      const _Tab(_Branch.book, Icons.add_circle_outline, Icons.add_circle,
+          'Book'),
+      const _Tab(_Branch.bookings, Icons.confirmation_number_outlined,
+          Icons.confirmation_number, 'Bookings'),
+      if (hasPortal)
+        const _Tab(_Branch.hoa, Icons.apartment_outlined, Icons.apartment,
+            'HOA'),
+      const _Tab(_Branch.profile, Icons.more_horiz, Icons.more_horiz, 'More'),
+    ];
+
+    final current = navigationShell.currentIndex;
+    var selected = tabs.indexWhere((t) => t.branch == current);
+    // Admin has no tab of its own — it's reached from "More", so keep the More
+    // tab highlighted while inside the admin section (or any unmapped branch).
+    if (selected < 0 || current == _Branch.admin) {
+      selected = tabs.indexWhere((t) => t.branch == _Branch.profile);
+    }
     if (selected < 0) selected = 0;
 
     // Community Chat is reachable from the main content tabs.

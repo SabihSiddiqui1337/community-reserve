@@ -59,9 +59,6 @@ class _ApprovalTile extends ConsumerWidget {
       data: (u) => (u?.name ?? '').isNotEmpty ? u!.name : membership.userId,
       orElse: () => '…',
     );
-    final unit =
-        membership.unit.isNotEmpty ? 'Unit ${membership.unit}' : null;
-
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -81,19 +78,12 @@ class _ApprovalTile extends ConsumerWidget {
                   Icon(Icons.person_outline, color: theme.colorScheme.primary),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(name, style: theme.textTheme.titleMedium),
-                        if (unit != null)
-                          Text(
-                            unit,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                      ],
-                    ),
+                    child: Text(name, style: theme.textTheme.titleMedium),
+                  ),
+                  Text(
+                    'View Details',
+                    style: theme.textTheme.labelLarge
+                        ?.copyWith(color: theme.colorScheme.primary),
                   ),
                 ],
               ),
@@ -117,15 +107,6 @@ class _ApprovalTile extends ConsumerWidget {
                   ),
                 ),
               ],
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'View Details',
-                  style: theme.textTheme.labelLarge
-                      ?.copyWith(color: theme.colorScheme.primary),
-                ),
-              ),
             ],
           ),
         ),

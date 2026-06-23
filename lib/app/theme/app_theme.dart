@@ -53,7 +53,7 @@ class AppTheme {
       scaffoldBackgroundColor: black,
       textTheme: GoogleFonts.interTextTheme(base.textTheme)
           .apply(bodyColor: Colors.white, displayColor: Colors.white),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         // No lime surface-tint overlay when content scrolls under the bar
@@ -62,6 +62,12 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         centerTitle: true,
         foregroundColor: Colors.white,
+        // Bold app-bar titles everywhere (More, My Bookings, Admin, etc.).
+        titleTextStyle: GoogleFonts.inter(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(

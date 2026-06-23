@@ -13,7 +13,8 @@ abstract class Announcement with _$Announcement {
     required String id,
     @Default('') String title,
     @Default('') String body,
-    @Default('') String authorName,
+    @Default('') String authorName, // snapshot fallback (legacy / deleted user)
+    @Default('') String authorId, // resolve the LIVE name from this at display
     @Default('announcement') String type, // announcement | event
     @TimestampConverter() DateTime? createdAt,
   }) = _Announcement;

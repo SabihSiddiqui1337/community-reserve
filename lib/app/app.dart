@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -33,14 +34,20 @@ class AmenryApp extends ConsumerWidget {
             alignment: Alignment.centerLeft,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
-              // A toast overlay above the router so toasts render on top even
-              // during the route change that can follow showSnack().
-              child: Overlay(
-                key: toastOverlayKey,
-                initialEntries: [
-                  OverlayEntry(
-                      builder: (_) => child ?? const SizedBox.shrink()),
-                ],
+              // On web the browser window can extend behind the OS taskbar,
+              // hiding the floating bottom nav. Lift the whole app a bit so it
+              // stays visible. (Web-only; native devices have proper insets.)
+              child: Padding(
+                padding: EdgeInsets.only(bottom: kIsWeb ? 48 : 0),
+                // A toast overlay above the router so toasts render on top even
+                // during the route change that can follow showSnack().
+                child: Overlay(
+                  key: toastOverlayKey,
+                  initialEntries: [
+                    OverlayEntry(
+                        builder: (_) => child ?? const SizedBox.shrink()),
+                  ],
+                ),
               ),
             ),
           ),

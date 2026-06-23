@@ -846,7 +846,7 @@ as bool,
 /// @nodoc
 mixin _$Community {
 
- String get id; String get name; String get address; String get timezone; Branding get branding; CommunitySettings get settings; FeatureFlags get featureFlags;
+ String get id; String get name; String get address; String get timezone; Branding get branding; CommunitySettings get settings; FeatureFlags get featureFlags; String? get residentPortalUrl;
 /// Create a copy of Community
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -859,16 +859,16 @@ $CommunityCopyWith<Community> get copyWith => _$CommunityCopyWithImpl<Community>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Community&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.address, address) || other.address == address)&&(identical(other.timezone, timezone) || other.timezone == timezone)&&(identical(other.branding, branding) || other.branding == branding)&&(identical(other.settings, settings) || other.settings == settings)&&(identical(other.featureFlags, featureFlags) || other.featureFlags == featureFlags));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Community&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.address, address) || other.address == address)&&(identical(other.timezone, timezone) || other.timezone == timezone)&&(identical(other.branding, branding) || other.branding == branding)&&(identical(other.settings, settings) || other.settings == settings)&&(identical(other.featureFlags, featureFlags) || other.featureFlags == featureFlags)&&(identical(other.residentPortalUrl, residentPortalUrl) || other.residentPortalUrl == residentPortalUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,address,timezone,branding,settings,featureFlags);
+int get hashCode => Object.hash(runtimeType,id,name,address,timezone,branding,settings,featureFlags,residentPortalUrl);
 
 @override
 String toString() {
-  return 'Community(id: $id, name: $name, address: $address, timezone: $timezone, branding: $branding, settings: $settings, featureFlags: $featureFlags)';
+  return 'Community(id: $id, name: $name, address: $address, timezone: $timezone, branding: $branding, settings: $settings, featureFlags: $featureFlags, residentPortalUrl: $residentPortalUrl)';
 }
 
 
@@ -879,7 +879,7 @@ abstract mixin class $CommunityCopyWith<$Res>  {
   factory $CommunityCopyWith(Community value, $Res Function(Community) _then) = _$CommunityCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String address, String timezone, Branding branding, CommunitySettings settings, FeatureFlags featureFlags
+ String id, String name, String address, String timezone, Branding branding, CommunitySettings settings, FeatureFlags featureFlags, String? residentPortalUrl
 });
 
 
@@ -896,7 +896,7 @@ class _$CommunityCopyWithImpl<$Res>
 
 /// Create a copy of Community
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? address = null,Object? timezone = null,Object? branding = null,Object? settings = null,Object? featureFlags = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? address = null,Object? timezone = null,Object? branding = null,Object? settings = null,Object? featureFlags = null,Object? residentPortalUrl = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -905,7 +905,8 @@ as String,timezone: null == timezone ? _self.timezone : timezone // ignore: cast
 as String,branding: null == branding ? _self.branding : branding // ignore: cast_nullable_to_non_nullable
 as Branding,settings: null == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
 as CommunitySettings,featureFlags: null == featureFlags ? _self.featureFlags : featureFlags // ignore: cast_nullable_to_non_nullable
-as FeatureFlags,
+as FeatureFlags,residentPortalUrl: freezed == residentPortalUrl ? _self.residentPortalUrl : residentPortalUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 /// Create a copy of Community
@@ -1017,10 +1018,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String address,  String timezone,  Branding branding,  CommunitySettings settings,  FeatureFlags featureFlags)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String address,  String timezone,  Branding branding,  CommunitySettings settings,  FeatureFlags featureFlags,  String? residentPortalUrl)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Community() when $default != null:
-return $default(_that.id,_that.name,_that.address,_that.timezone,_that.branding,_that.settings,_that.featureFlags);case _:
+return $default(_that.id,_that.name,_that.address,_that.timezone,_that.branding,_that.settings,_that.featureFlags,_that.residentPortalUrl);case _:
   return orElse();
 
 }
@@ -1038,10 +1039,10 @@ return $default(_that.id,_that.name,_that.address,_that.timezone,_that.branding,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String address,  String timezone,  Branding branding,  CommunitySettings settings,  FeatureFlags featureFlags)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String address,  String timezone,  Branding branding,  CommunitySettings settings,  FeatureFlags featureFlags,  String? residentPortalUrl)  $default,) {final _that = this;
 switch (_that) {
 case _Community():
-return $default(_that.id,_that.name,_that.address,_that.timezone,_that.branding,_that.settings,_that.featureFlags);case _:
+return $default(_that.id,_that.name,_that.address,_that.timezone,_that.branding,_that.settings,_that.featureFlags,_that.residentPortalUrl);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1058,10 +1059,10 @@ return $default(_that.id,_that.name,_that.address,_that.timezone,_that.branding,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String address,  String timezone,  Branding branding,  CommunitySettings settings,  FeatureFlags featureFlags)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String address,  String timezone,  Branding branding,  CommunitySettings settings,  FeatureFlags featureFlags,  String? residentPortalUrl)?  $default,) {final _that = this;
 switch (_that) {
 case _Community() when $default != null:
-return $default(_that.id,_that.name,_that.address,_that.timezone,_that.branding,_that.settings,_that.featureFlags);case _:
+return $default(_that.id,_that.name,_that.address,_that.timezone,_that.branding,_that.settings,_that.featureFlags,_that.residentPortalUrl);case _:
   return null;
 
 }
@@ -1073,7 +1074,7 @@ return $default(_that.id,_that.name,_that.address,_that.timezone,_that.branding,
 @JsonSerializable()
 
 class _Community implements Community {
-  const _Community({required this.id, required this.name, this.address = '', this.timezone = 'America/New_York', this.branding = const Branding(), this.settings = const CommunitySettings(), this.featureFlags = const FeatureFlags()});
+  const _Community({required this.id, required this.name, this.address = '', this.timezone = 'America/New_York', this.branding = const Branding(), this.settings = const CommunitySettings(), this.featureFlags = const FeatureFlags(), this.residentPortalUrl});
   factory _Community.fromJson(Map<String, dynamic> json) => _$CommunityFromJson(json);
 
 @override final  String id;
@@ -1083,6 +1084,7 @@ class _Community implements Community {
 @override@JsonKey() final  Branding branding;
 @override@JsonKey() final  CommunitySettings settings;
 @override@JsonKey() final  FeatureFlags featureFlags;
+@override final  String? residentPortalUrl;
 
 /// Create a copy of Community
 /// with the given fields replaced by the non-null parameter values.
@@ -1097,16 +1099,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Community&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.address, address) || other.address == address)&&(identical(other.timezone, timezone) || other.timezone == timezone)&&(identical(other.branding, branding) || other.branding == branding)&&(identical(other.settings, settings) || other.settings == settings)&&(identical(other.featureFlags, featureFlags) || other.featureFlags == featureFlags));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Community&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.address, address) || other.address == address)&&(identical(other.timezone, timezone) || other.timezone == timezone)&&(identical(other.branding, branding) || other.branding == branding)&&(identical(other.settings, settings) || other.settings == settings)&&(identical(other.featureFlags, featureFlags) || other.featureFlags == featureFlags)&&(identical(other.residentPortalUrl, residentPortalUrl) || other.residentPortalUrl == residentPortalUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,address,timezone,branding,settings,featureFlags);
+int get hashCode => Object.hash(runtimeType,id,name,address,timezone,branding,settings,featureFlags,residentPortalUrl);
 
 @override
 String toString() {
-  return 'Community(id: $id, name: $name, address: $address, timezone: $timezone, branding: $branding, settings: $settings, featureFlags: $featureFlags)';
+  return 'Community(id: $id, name: $name, address: $address, timezone: $timezone, branding: $branding, settings: $settings, featureFlags: $featureFlags, residentPortalUrl: $residentPortalUrl)';
 }
 
 
@@ -1117,7 +1119,7 @@ abstract mixin class _$CommunityCopyWith<$Res> implements $CommunityCopyWith<$Re
   factory _$CommunityCopyWith(_Community value, $Res Function(_Community) _then) = __$CommunityCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String address, String timezone, Branding branding, CommunitySettings settings, FeatureFlags featureFlags
+ String id, String name, String address, String timezone, Branding branding, CommunitySettings settings, FeatureFlags featureFlags, String? residentPortalUrl
 });
 
 
@@ -1134,7 +1136,7 @@ class __$CommunityCopyWithImpl<$Res>
 
 /// Create a copy of Community
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? address = null,Object? timezone = null,Object? branding = null,Object? settings = null,Object? featureFlags = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? address = null,Object? timezone = null,Object? branding = null,Object? settings = null,Object? featureFlags = null,Object? residentPortalUrl = freezed,}) {
   return _then(_Community(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -1143,7 +1145,8 @@ as String,timezone: null == timezone ? _self.timezone : timezone // ignore: cast
 as String,branding: null == branding ? _self.branding : branding // ignore: cast_nullable_to_non_nullable
 as Branding,settings: null == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
 as CommunitySettings,featureFlags: null == featureFlags ? _self.featureFlags : featureFlags // ignore: cast_nullable_to_non_nullable
-as FeatureFlags,
+as FeatureFlags,residentPortalUrl: freezed == residentPortalUrl ? _self.residentPortalUrl : residentPortalUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

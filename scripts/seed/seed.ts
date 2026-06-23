@@ -14,10 +14,15 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp, Firestore } from "firebase-admin/firestore";
 import { getAuth, Auth } from "firebase-admin/auth";
 
-process.env.FIRESTORE_EMULATOR_HOST ??= "localhost:8080";
-process.env.FIREBASE_AUTH_EMULATOR_HOST ??= "localhost:9099";
+// Seed the local emulator by default. To seed a REAL project instead, run with
+// `SEED_PROD=1 FIREBASE_PROJECT=<your-project-id> GOOGLE_APPLICATION_CREDENTIALS=<service-account.json> npm run seed`.
+const PROD = process.env.SEED_PROD === "1";
+if (!PROD) {
+  process.env.FIRESTORE_EMULATOR_HOST ??= "localhost:8080";
+  process.env.FIREBASE_AUTH_EMULATOR_HOST ??= "localhost:9099";
+}
 
-const PROJECT_ID = "demo-amenry";
+const PROJECT_ID = process.env.FIREBASE_PROJECT || "demo-amenry";
 initializeApp({ projectId: PROJECT_ID });
 const db: Firestore = getFirestore();
 const auth: Auth = getAuth();
@@ -91,6 +96,7 @@ async function seedCommunity(opts: {
   accentColor: string;
   theme: "dark" | "light";
   paymentsEnabled?: boolean;
+  residentPortalUrl?: string;
   amenities: AmenitySeed[];
   members: MemberSeed[];
 }): Promise<void> {
@@ -99,6 +105,7 @@ async function seedCommunity(opts: {
     name: opts.name,
     address: opts.address,
     timezone: opts.timezone,
+    residentPortalUrl: opts.residentPortalUrl ?? null,
     branding: {
       logoUrl: null,
       primaryColor: opts.primaryColor,
@@ -192,6 +199,7 @@ async function main(): Promise<void> {
     accentColor: "#C7CBD1",
     theme: "dark",
     paymentsEnabled: true,
+    residentPortalUrl: "https://southside.myresman.com/Portal/Access/SignIn",
     amenities: [
       { id: "hall", type: "hall", name: "Event Hall", description: "Private event space for gatherings and parties.", status: "active", slotMinutes: 60, capacity: 1, isPaid: true, amountCents: 500, closeHour: 24 },
       { id: "pickleball", type: "pickleballCourt", name: "Pickleball", description: "Two championship courts with lights.", status: "active", slotMinutes: 60, capacity: 2, isPaid: true, amountCents: 500 },
@@ -234,7 +242,7 @@ async function main(): Promise<void> {
   ];
   for (const a of annData) {
     await ann.add({
-      title: a.title, body: a.body, authorName: a.authorName, type: a.type,
+      title: a.title, body: a.body, authorName: a.authorName, authorId: "admin-uid", type: a.type,
       createdAt: Timestamp.fromMillis(Timestamp.now().toMillis() - a.offset * 86_400_000),
     });
   }

@@ -62,19 +62,6 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
     _limitDialogOpen = false;
   }
 
-  /// When the Check-out bar first appears, nudge the list up so the slot you
-  /// just tapped isn't hidden behind the bar.
-  void _liftAboveBar() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scroll.hasClients) return;
-      _scroll.animateTo(
-        (_scroll.offset + 110).clamp(0.0, _scroll.position.maxScrollExtent),
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOut,
-      );
-    });
-  }
-
   bool _isToday(DateTime d) {
     final now = DateTime.now();
     return d.year == now.year && d.month == now.month && d.day == now.day;
@@ -237,7 +224,6 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
                                       .contains(slots[i].start),
                                   onNotify: () => _notify(slots[i]),
                                   onTap: () {
-                                    final wasEmpty = _selected.isEmpty;
                                     // Events: any number of consecutive hours.
                                     // Courts: capped at 2.
                                     final maxHours =
@@ -252,9 +238,6 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
                                       _blocked = false;
                                       _showLimitDialog(
                                           'Hours must be back-to-back. You can book up to 2 consecutive hours — tap a slot next to your current selection, or clear it first.');
-                                    }
-                                    if (wasEmpty && _selected.isNotEmpty) {
-                                      _liftAboveBar();
                                     }
                                   },
                                 );
@@ -272,6 +255,7 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
               hours: _selected.length,
               priceCents: _priceForSelection(),
               isEvent: isEvent,
+              isPaid: amenity.value?.pricing.isPaid ?? true,
               onCheckout: () => _goReserve(isEvent),
             ),
     );
@@ -621,10 +605,12 @@ class _CheckoutBar extends StatelessWidget {
       {required this.hours,
       required this.priceCents,
       required this.onCheckout,
-      this.isEvent = false});
+      this.isEvent = false,
+      this.isPaid = true});
   final int hours;
   final int priceCents;
   final bool isEvent;
+  final bool isPaid;
   final VoidCallback onCheckout;
 
   @override
@@ -645,7 +631,7 @@ class _CheckoutBar extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(isEvent ? 'Fill out request form' : 'Check out',
+                    Text(isEvent ? 'Fill out request form' : 'Check Out',
                         style: TextStyle(
                             color: scheme.onInverseSurface,
                             fontSize: 16,
@@ -659,7 +645,9 @@ class _CheckoutBar extends StatelessWidget {
                 Text(
                   isEvent
                       ? hoursLabel
-                      : '$hours hr · ${Money.format(priceCents)}',
+                      : isPaid
+                          ? '$hours hr · ${Money.format(priceCents)}'
+                          : '$hours hr · Free',
                   style: TextStyle(
                       color: scheme.onInverseSurface.withValues(alpha: 0.80),
                       fontSize: 13),

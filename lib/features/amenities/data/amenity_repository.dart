@@ -25,7 +25,13 @@ class AmenityRepository {
   /// Admin: create or update an amenity. A blank id mints a new document.
   Future<void> save(String cid, Amenity amenity) async {
     final id = amenity.id.isEmpty ? _col(cid).doc().id : amenity.id;
-    await _col(cid).doc(id).set(amenity.copyWith(id: id).toJson()..remove('id'));
+    // json_serializable doesn't convert nested objects by default, so the
+    // `pricing` field would serialize as a raw Dart object that Firestore
+    // rejects ("Unsupported field value: a custom object"). Flatten it.
+    final data = amenity.copyWith(id: id).toJson()
+      ..remove('id')
+      ..['pricing'] = amenity.pricing.toJson();
+    await _col(cid).doc(id).set(data);
   }
 
   Future<void> delete(String cid, String id) => _col(cid).doc(id).delete();

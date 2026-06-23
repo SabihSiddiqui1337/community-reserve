@@ -176,7 +176,8 @@ class EventsScreen extends ConsumerWidget {
     );
     if (posted != true) return;
     final cid = ref.read(currentCommunityIdProvider);
-    final author = ref.read(currentUserProvider).value?.name ?? 'Admin';
+    final user = ref.read(currentUserProvider).value;
+    final author = user?.name ?? 'Admin';
     if (cid == null || titleCtl.text.trim().isEmpty) return;
     await ref.read(announcementRepositoryProvider).post(
           cid,
@@ -185,11 +186,21 @@ class EventsScreen extends ConsumerWidget {
             title: titleCtl.text.trim(),
             body: bodyCtl.text.trim(),
             authorName: author,
+            authorId: user?.uid ?? '',
             type: type,
           ),
         );
   }
 }
+
+/// The author's CURRENT name (live from their profile), so renames propagate to
+/// every post they made. Falls back to the snapshot while loading / for legacy.
+String _authorName(WidgetRef ref, Announcement a) =>
+    ref
+        .watch(announcementAuthorNameProvider(
+            (id: a.authorId, fallback: a.authorName)))
+        .value ??
+    a.authorName;
 
 class _AnnouncementCard extends ConsumerWidget {
   const _AnnouncementCard({required this.announcement});
@@ -287,9 +298,9 @@ class _AnnouncementCard extends ConsumerWidget {
                               fontWeight: FontWeight.w600)),
                     ),
                 ],
-                if (a.authorName.isNotEmpty) ...[
+                if (_authorName(ref, a).isNotEmpty) ...[
                   const SizedBox(height: 10),
-                  Text('— ${a.authorName}',
+                  Text('— ${_authorName(ref, a)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant)),
                 ],

@@ -40,7 +40,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   int? _court; // null = Auto
   bool _busy = false;
 
-  Future<void> _reserve(int subtotalCents, int totalCents) async {
+  Future<void> _reserve(int subtotalCents, int totalCents,
+      {String? paymentMethod, int? court}) async {
     final cid = ref.read(currentCommunityIdProvider);
     final community = ref.read(activeCommunityProvider);
     final amenity = ref.read(amenityProvider(widget.amenityId)).value;
@@ -65,13 +66,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               currency: amenity.pricing.currency,
             );
       }
+      // Snapshot how it was paid for the receipt: the explicitly chosen method
+      // (a picked card / Apple Pay / Google Pay), else the card on file.
+      final card = ref.read(currentUserProvider).value?.selectedCard;
+      final methodLabel = !needsPayment
+          ? null
+          : (paymentMethod ??
+              (card != null ? '${card.brand} •••• ${card.last4}' : null));
       final res = await ref.read(reservationRepositoryProvider).createReservation(
             communityId: cid,
             amenityId: widget.amenityId,
             start: widget.start,
             end: widget.end,
             paymentId: paymentId,
-            court: _court,
+            court: court ?? _court,
+            paymentMethod: methodLabel,
           );
       ref.read(pinCacheProvider.notifier).put(res.reservationId, res.pin);
       // The slot is now taken — drop cached availability so it refetches fresh.
@@ -123,13 +132,30 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         final billedMinutes =
             widget.end.difference(billedStart).inMinutes.clamp(0, 1 << 31);
         final alreadyStarted = widget.start.isBefore(now) && billedMinutes > 0;
-        final subtotal =
-            (amenity.pricing.amountCents * billedMinutes / 60.0).round();
+        // Free amenities never charge — ignore any stale price on the doc.
+        final subtotal = amenity.pricing.isPaid
+            ? (amenity.pricing.amountCents * billedMinutes / 60.0).round()
+            : 0;
         final taxEnabled =
             ref.watch(activeCommunityProvider).settings.taxEnabled;
         final tax = taxEnabled ? (subtotal * _taxRate).round() : 0;
         final total = subtotal + tax;
         final capacity = amenity.capacity;
+
+        // Split the billed window into per-hour line items for the breakdown.
+        final segments = <(DateTime, DateTime, int)>[];
+        var segStart = billedStart;
+        while (segStart.isBefore(widget.end)) {
+          var segEnd = segStart.add(const Duration(hours: 1));
+          if (segEnd.isAfter(widget.end)) segEnd = widget.end;
+          final mins = segEnd.difference(segStart).inMinutes;
+          segments.add((
+            segStart,
+            segEnd,
+            (amenity.pricing.amountCents * mins / 60.0).round(),
+          ));
+          segStart = segEnd;
+        }
 
         final bookedCourts = <int>{
           for (final b in busy)
@@ -138,6 +164,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 b.end.isAfter(widget.start))
               b.court!
         };
+
+        // No "Auto" — always a specific court. Use the user's pick when it's
+        // still free, otherwise the first available court.
+        final availableCourts = [
+          for (var c = 1; c <= capacity; c++)
+            if (!bookedCourts.contains(c)) c,
+        ];
+        final effectiveCourt =
+            (_court != null && availableCourts.contains(_court))
+                ? _court
+                : (availableCourts.isNotEmpty ? availableCourts.first : null);
 
         return Scaffold(
           appBar: AppBar(
@@ -157,71 +194,81 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                         ?.copyWith(fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 20),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(DateFormat('EEEE, MMMM d').format(widget.start),
-                            style: theme.textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${DateFormat('h:mm a').format(widget.start)} – ${DateFormat('h:mm a').format(widget.end)}',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(Money.format(subtotal),
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold)),
-                ],
+              // Date + time of the booking.
+              Text(DateFormat('EEEE, MMMM d').format(widget.start),
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 2),
+              Text(
+                '${DateFormat('h:mm a').format(widget.start)} – ${DateFormat('h:mm a').format(widget.end)}',
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               if (capacity > 1) ...[
                 _CourtSelector(
                   capacity: capacity,
                   bookedCourts: bookedCourts,
-                  selected: _court,
+                  selected: effectiveCourt,
                   onChanged: (c) => setState(() => _court = c),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
               ],
-              const Divider(),
-              _Line(label: 'Subtotal', value: Money.format(subtotal)),
-              if (alreadyStarted)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    'Charged for the remaining $billedMinutes min.',
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              if (amenity.pricing.isPaid) ...[
+                const Divider(),
+                // Per-hour price breakdown, then subtotal + tax. (Total shows in
+                // the pay bar at the bottom.)
+                if (capacity > 1 && effectiveCourt != null)
+                  _Line(
+                    label: 'Court',
+                    value: 'Court $effectiveCourt',
+                    subtle: true,
                   ),
-                ),
-              const Divider(),
-              const SizedBox(height: 12),
+                for (final seg in segments)
+                  _Line(
+                    label:
+                        '${DateFormat('h:mm a').format(seg.$1)} – ${DateFormat('h:mm a').format(seg.$2)}',
+                    value: Money.format(seg.$3),
+                    subtle: true,
+                  ),
+                if (alreadyStarted)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2, bottom: 4),
+                    child: Text(
+                      'Charged for the remaining $billedMinutes min.',
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                  ),
+                const Divider(),
+                _Line(label: 'Subtotal', value: Money.format(subtotal)),
+                if (taxEnabled)
+                  _Line(label: 'Tax (8.25%)', value: Money.format(tax)),
+                const SizedBox(height: 16),
+              ] else ...[
+                // Free amenity — no charge, no breakdown.
+                const Divider(),
+                _Line(label: 'Price', value: 'Free'),
+                const SizedBox(height: 16),
+              ],
               const _Rules(),
-              const SizedBox(height: 12),
-              const Divider(),
-              if (taxEnabled)
-                _Line(label: 'Tax (8.25%)', value: Money.format(tax)),
               const SizedBox(height: 100),
             ],
           ),
           bottomNavigationBar: _PayBar(
             totalCents: total,
+            free: total == 0,
             card: user?.selectedCard,
             busy: _busy,
-            onReserve: () => _reserve(subtotal, total),
+            onReserve: () => _reserve(subtotal, total, court: effectiveCourt),
             onOtherPay: () => showModalBottomSheet<void>(
               context: context,
-              builder: (sheetContext) => _OtherWaysToPaySheet(
-                onPay: () {
+              isScrollControlled: true,
+              builder: (sheetContext) => _SelectPaymentMethodSheet(
+                onPick: (method) {
                   Navigator.pop(sheetContext);
-                  _reserve(subtotal, total);
+                  _reserve(subtotal, total,
+                      paymentMethod: method, court: effectiveCourt);
                 },
               ),
             ),
@@ -264,29 +311,57 @@ class _CourtSelector extends StatelessWidget {
           const Icon(Icons.sports_tennis, size: 20),
           const SizedBox(width: 12),
           const Text('Court'),
-          const Spacer(),
-          DropdownButton<int?>(
-            value: selected,
-            underline: const SizedBox.shrink(),
-            focusColor: Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            items: [
-              const DropdownMenuItem(value: null, child: Text('Auto')),
-              for (var c = 1; c <= capacity; c++)
-                DropdownMenuItem(
-                  value: c,
-                  enabled: !bookedCourts.contains(c),
-                  child: Text(
-                    bookedCourts.contains(c) ? 'Court $c · Booked' : 'Court $c',
-                    style: bookedCourts.contains(c)
-                        ? TextStyle(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontStyle: FontStyle.italic)
-                        : const TextStyle(color: Colors.white),
+          const SizedBox(width: 12),
+          // isExpanded makes the button fill the row, so the popup menu is wide
+          // enough to show "· Booked" in full (no clipping), while the closed
+          // button keeps a clean, right-aligned "Court N" via selectedItemBuilder.
+          Expanded(
+            child: DropdownButton<int>(
+              value: selected,
+              isExpanded: true,
+              underline: const SizedBox.shrink(),
+              focusColor: Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              selectedItemBuilder: (context) => [
+                for (var c = 1; c <= capacity; c++)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text('Court $c',
+                        style: const TextStyle(color: Colors.white)),
                   ),
-                ),
-            ],
-            onChanged: onChanged,
+              ],
+              items: [
+                // No "Auto" — pick a specific court. Booked courts are disabled.
+                for (var c = 1; c <= capacity; c++)
+                  DropdownMenuItem(
+                    value: c,
+                    enabled: !bookedCourts.contains(c),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Court $c',
+                            style: TextStyle(
+                              color: bookedCourts.contains(c)
+                                  ? theme.colorScheme.onSurfaceVariant
+                                  : Colors.white,
+                            )),
+                        if (bookedCourts.contains(c)) ...[
+                          const SizedBox(width: 6),
+                          Text('· Booked',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontStyle: FontStyle.italic,
+                                fontSize: 12,
+                              )),
+                        ],
+                      ],
+                    ),
+                  ),
+              ],
+              onChanged: (v) {
+                if (v != null) onChanged(v);
+              },
+            ),
           ),
         ],
       ),
@@ -295,22 +370,34 @@ class _CourtSelector extends StatelessWidget {
 }
 
 class _Line extends StatelessWidget {
-  const _Line({required this.label, required this.value});
+  const _Line(
+      {required this.label, required this.value, this.subtle = false});
   final String label;
   final String value;
+
+  /// Breakdown rows (per-hour / court) use a lighter, denser style than the
+  /// Subtotal / Tax rows.
+  final bool subtle;
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final base = subtle
+        ? theme.textTheme.bodyMedium
+            ?.copyWith(color: theme.colorScheme.onSurfaceVariant)
+        : theme.textTheme.bodyLarge;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: EdgeInsets.symmetric(vertical: subtle ? 5 : 12),
       child: Row(
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodyLarge),
-          const Spacer(),
-          Text(value,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge
-                  ?.copyWith(fontWeight: FontWeight.bold)),
+          Expanded(child: Text(label, style: base)),
+          const SizedBox(width: 12),
+          Text(
+            value,
+            style: subtle
+                ? base
+                : base?.copyWith(fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
@@ -348,6 +435,7 @@ class _PayBar extends StatelessWidget {
     required this.onReserve,
     required this.onChange,
     required this.onOtherPay,
+    this.free = false,
   });
   final int totalCents;
   final PaymentMethod? card;
@@ -355,6 +443,9 @@ class _PayBar extends StatelessWidget {
   final VoidCallback onReserve;
   final VoidCallback onChange;
   final VoidCallback onOtherPay;
+
+  /// No charge — show "Free" and hide the card / "other ways to pay" UI.
+  final bool free;
 
   @override
   Widget build(BuildContext context) {
@@ -374,29 +465,31 @@ class _PayBar extends StatelessWidget {
               children: [
                 Text('Total', style: theme.textTheme.titleMedium),
                 const Spacer(),
-                Text(Money.format(totalCents),
+                Text(free ? 'Free' : Money.format(totalCents),
                     style: theme.textTheme.titleLarge
                         ?.copyWith(fontWeight: FontWeight.bold)),
               ],
             ),
-            const SizedBox(height: 8),
-            // Selected card + Change
-            Row(
-              children: [
-                Icon(Icons.credit_card,
-                    size: 18, color: theme.colorScheme.onSurfaceVariant),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    card != null
-                        ? '${card!.brand}  •••• ${card!.last4}'
-                        : 'No card on file',
-                    style: theme.textTheme.bodyMedium,
+            if (!free) ...[
+              const SizedBox(height: 8),
+              // Selected card + Change
+              Row(
+                children: [
+                  Icon(Icons.credit_card,
+                      size: 18, color: theme.colorScheme.onSurfaceVariant),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      card != null
+                          ? '${card!.brand}  •••• ${card!.last4}'
+                          : 'No card on file',
+                      style: theme.textTheme.bodyMedium,
+                    ),
                   ),
-                ),
-                TextButton(onPressed: onChange, child: const Text('Change')),
-              ],
-            ),
+                  TextButton(onPressed: onChange, child: const Text('Change')),
+                ],
+              ),
+            ],
             const SizedBox(height: 8),
             FilledButton(
               onPressed: busy ? null : onReserve,
@@ -409,10 +502,99 @@ class _PayBar extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('Reserve'),
             ),
-            const SizedBox(height: 4),
-            TextButton(
-              onPressed: busy ? null : onOtherPay,
-              child: const Text('Other ways to pay'),
+            if (!free) ...[
+              const SizedBox(height: 4),
+              TextButton(
+                onPressed: busy ? null : onOtherPay,
+                child: const Text('Other ways to pay'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Select Payment Method" picker: every saved card plus Apple Pay / Google
+/// Pay. Tapping a method pays with it (snapshotted on the receipt as "Paid
+/// with …"). Apple/Google Pay show the backing card's last 4.
+class _SelectPaymentMethodSheet extends ConsumerWidget {
+  const _SelectPaymentMethodSheet({required this.onPick});
+
+  /// Called with the method label to snapshot, e.g. "Visa •••• 9672" or
+  /// "Apple Pay •••• 9293".
+  final void Function(String method) onPick;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final user = ref.watch(currentUserProvider).value;
+    final cards = user?.paymentMethods ?? const <PaymentMethod>[];
+    final backingLast4 =
+        user?.selectedCard?.last4 ?? (cards.isNotEmpty ? cards.first.last4 : '••••');
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const SizedBox(width: 40),
+                Expanded(
+                  child: Center(
+                    child: Text('Select Payment Method',
+                        style: theme.textTheme.titleLarge),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: 'Close',
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            // Saved cards.
+            for (final c in cards)
+              _MethodRow(
+                icon: Icons.credit_card,
+                label: '${c.brand} •••• ${c.last4}',
+                selected: c.id == user?.selectedCardId,
+                onTap: () => onPick('${c.brand} •••• ${c.last4}'),
+              ),
+            if (cards.isNotEmpty) const SizedBox(height: 4),
+            // Wallets.
+            _MethodRow(
+              icon: Icons.apple,
+              label: 'Apple Pay',
+              trailing: '•••• $backingLast4',
+              onTap: () => onPick('Apple Pay •••• $backingLast4'),
+            ),
+            _MethodRow(
+              icon: Icons.account_balance_wallet_outlined,
+              label: 'Google Pay',
+              trailing: '•••• $backingLast4',
+              onTap: () => onPick('Google Pay •••• $backingLast4'),
+            ),
+            const SizedBox(height: 10),
+            Center(
+              child: Text('Demo — no real charge is made.',
+                  style: theme.textTheme.bodySmall),
             ),
           ],
         ),
@@ -421,65 +603,59 @@ class _PayBar extends StatelessWidget {
   }
 }
 
-/// Sheet offering Apple Pay / Google Pay (placeholders — same stubbed flow).
-class _OtherWaysToPaySheet extends StatelessWidget {
-  const _OtherWaysToPaySheet({required this.onPay});
-  final VoidCallback onPay;
+/// A tappable payment-method row in the picker.
+class _MethodRow extends StatelessWidget {
+  const _MethodRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.trailing,
+    this.selected = false,
+  });
+  final IconData icon;
+  final String label;
+  final String? trailing;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Text('Other ways to pay',
-                  style: theme.textTheme.titleLarge),
-            ),
-            const SizedBox(height: 20),
-            // Apple Pay
-            SizedBox(
-              height: 52,
-              child: FilledButton.icon(
-                onPressed: onPay,
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                ),
-                icon: const Icon(Icons.apple, size: 24),
-                label: const Text('Pay',
-                    style: TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600)),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: selected
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.outlineVariant,
+                width: 1.5,
               ),
             ),
-            const SizedBox(height: 12),
-            // Google Pay
-            SizedBox(
-              height: 52,
-              child: FilledButton.icon(
-                onPressed: onPay,
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  side: const BorderSide(color: Color(0xFFDADCE0)),
-                ),
-                icon: const Icon(Icons.account_balance_wallet_outlined,
-                    size: 22),
-                label: const Text('Google Pay',
-                    style: TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600)),
-              ),
+            child: Row(
+              children: [
+                Icon(icon, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: 12),
+                Text(label, style: theme.textTheme.titleMedium),
+                const Spacer(),
+                if (trailing != null)
+                  Text(trailing!,
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_right,
+                    color: theme.colorScheme.onSurfaceVariant),
+              ],
             ),
-            const SizedBox(height: 8),
-            Center(
-              child: Text('Demo — no real charge is made.',
-                  style: theme.textTheme.bodySmall),
-            ),
-          ],
+          ),
         ),
       ),
     );

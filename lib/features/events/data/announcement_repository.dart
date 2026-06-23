@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/firebase/firebase_providers.dart';
+import '../../auth/data/user_repository.dart';
 import '../../community/application/tenant_providers.dart';
 import '../domain/announcement.dart';
 
@@ -32,4 +33,15 @@ final announcementsProvider = StreamProvider<List<Announcement>>((ref) {
   final cid = ref.watch(currentCommunityIdProvider);
   if (cid == null) return Stream.value(const []);
   return ref.watch(announcementRepositoryProvider).watchAll(cid);
+});
+
+/// Resolves an announcement author's CURRENT display name from their live user
+/// profile (so a rename updates everywhere they're shown), falling back to the
+/// snapshot `authorName` for legacy posts or when the user can't be read.
+final announcementAuthorNameProvider =
+    StreamProvider.family<String, ({String id, String fallback})>((ref, arg) {
+  if (arg.id.isEmpty) return Stream.value(arg.fallback);
+  return ref.watch(userRepositoryProvider).watch(arg.id).map(
+        (u) => (u?.name ?? '').trim().isNotEmpty ? u!.name : arg.fallback,
+      );
 });

@@ -57,6 +57,12 @@ class AnnouncementDetailScreen extends ConsumerWidget {
     final isAdmin = ref.watch(isAdminProvider);
     final a = announcement;
     final isEvent = a.type == 'event';
+    // Live author name (updates if the author renames), snapshot as fallback.
+    final authorName = ref
+            .watch(announcementAuthorNameProvider(
+                (id: a.authorId, fallback: a.authorName)))
+            .value ??
+        a.authorName;
 
     return Scaffold(
       appBar: AppBar(
@@ -95,9 +101,9 @@ class AnnouncementDetailScreen extends ConsumerWidget {
           if (a.body.isNotEmpty)
             Text(a.body,
                 style: theme.textTheme.bodyLarge?.copyWith(height: 1.5)),
-          if (a.authorName.isNotEmpty) ...[
+          if (authorName.isNotEmpty) ...[
             const SizedBox(height: 24),
-            Text('— ${a.authorName}',
+            Text('— $authorName',
                 style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     fontStyle: FontStyle.italic)),

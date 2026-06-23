@@ -207,18 +207,11 @@ class _HistoryTrailing extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('View details',
-                style: TextStyle(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11)),
-            Icon(Icons.chevron_right,
-                size: 14, color: theme.colorScheme.primary),
-          ],
-        ),
+        Text('View Details',
+            style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w700,
+                fontSize: 11)),
         const SizedBox(height: 4),
         Text(label,
             style: TextStyle(

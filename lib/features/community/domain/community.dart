@@ -66,6 +66,9 @@ abstract class Community with _$Community {
     @Default(Branding()) Branding branding,
     @Default(CommunitySettings()) CommunitySettings settings,
     @Default(FeatureFlags()) FeatureFlags featureFlags,
+    // URL of the community's existing resident portal (e.g. ResMan). When set,
+    // the "HOA" tab loads it in an embedded WebView; when null, the tab hides.
+    String? residentPortalUrl,
   }) = _Community;
 
   factory Community.fromJson(Map<String, dynamic> json) =>

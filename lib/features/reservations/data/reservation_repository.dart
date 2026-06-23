@@ -70,6 +70,7 @@ class ReservationRepository {
     required DateTime end,
     String? paymentId,
     int? court,
+    String? paymentMethod,
   }) async {
     final callable = _functions.httpsCallable('createReservation');
     // Note: subtotal/tax are computed and snapshotted server-side from the
@@ -81,6 +82,7 @@ class ReservationRepository {
       'endTime': end.toUtc().toIso8601String(),
       'paymentId': ?paymentId,
       'court': ?court,
+      'paymentMethod': ?paymentMethod,
     });
     return (
       reservationId: result.data['reservationId'] as String,

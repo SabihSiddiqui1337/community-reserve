@@ -595,14 +595,53 @@ class _PaymentOutcome extends ConsumerWidget {
     if (paidWith != null && card != null && !paidWith.contains('••••')) {
       paidWith = '$paidWith •••• ${card.last4}';
     }
-    final wasPaid = (amenity?.pricing.isPaid ?? false) &&
-        r.paymentId != null &&
-        subtotal > 0;
+    // Paid is decided by the booking's OWN record (a payment + a charged
+    // amount), not the amenity's current price — so a booking still shows its
+    // receipt even if the amenity later became free.
+    final wasPaid = r.paymentId != null && subtotal > 0;
 
     // No charge ever happened — show a clean note instead of an invoice.
     if (!wasPaid) {
+      final isFree = !(amenity?.pricing.isPaid ?? false);
+      final isTerminal = r.status == ReservationStatus.cancelled ||
+          r.status == ReservationStatus.noShow ||
+          r.status == ReservationStatus.expired;
+
+      // Free booking (active/upcoming/completed): show a clear "Free" receipt so
+      // it's easy to track in both Upcoming and History.
+      if (isFree && !isTerminal) {
+        final lime = theme.colorScheme.primary;
+        return _ReceiptCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.receipt_long, color: lime, size: 20),
+                  const SizedBox(width: 8),
+                  Text('RECEIPT',
+                      style: TextStyle(
+                          letterSpacing: 1.2,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: lime)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _ReceiptRow(label: 'Price', value: 'Free'),
+              const SizedBox(height: 12),
+              Divider(color: theme.colorScheme.outlineVariant, height: 1),
+              const SizedBox(height: 12),
+              _ReceiptRow(label: 'Total', value: 'Free', strong: true),
+            ],
+          ),
+        );
+      }
+
       final msg = switch (r.status) {
-        ReservationStatus.cancelled => 'Cancelled — no payment was charged.',
+        ReservationStatus.cancelled => isFree
+            ? 'Cancelled — this booking was free.'
+            : 'Cancelled — no payment was charged.',
         ReservationStatus.noShow => 'No-show — no payment was charged.',
         ReservationStatus.expired => 'Expired — no payment was charged.',
         _ => 'No payment was charged.',
@@ -630,6 +669,30 @@ class _PaymentOutcome extends ConsumerWidget {
     final netCharged = total - refundAmount;
     final lime = theme.colorScheme.primary;
 
+    // Per-hour breakdown (mirrors the checkout Order Summary). Split the booked
+    // window into hour segments and distribute the paid subtotal across them so
+    // the rows always sum exactly to Subtotal (last segment takes any remainder).
+    final segments = <(DateTime, DateTime, int)>[];
+    final start = r.startTime;
+    final end = r.endTime;
+    if (start != null && end != null && end.isAfter(start)) {
+      final totalMins = end.difference(start).inMinutes;
+      var segStart = start;
+      var allocated = 0;
+      while (segStart.isBefore(end)) {
+        var segEnd = segStart.add(const Duration(hours: 1));
+        if (segEnd.isAfter(end)) segEnd = end;
+        final mins = segEnd.difference(segStart).inMinutes;
+        final isLast = !segEnd.isBefore(end);
+        final cents =
+            isLast ? subtotal - allocated : (subtotal * mins / totalMins).round();
+        allocated += cents;
+        segments.add((segStart, segEnd, cents));
+        segStart = segEnd;
+      }
+    }
+    final showCourt = (amenity?.capacity ?? 1) > 1 && r.court != null;
+
     return _ReceiptCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -647,6 +710,22 @@ class _PaymentOutcome extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
+          if (showCourt) ...[
+            _ReceiptRow(label: 'Court', value: 'Court ${r.court}'),
+            const SizedBox(height: 9),
+          ],
+          for (final seg in segments) ...[
+            _ReceiptRow(
+              label:
+                  '${DateFormat('h:mm a').format(seg.$1)} – ${DateFormat('h:mm a').format(seg.$2)}',
+              value: Money.format(seg.$3),
+            ),
+            const SizedBox(height: 9),
+          ],
+          if (showCourt || segments.isNotEmpty) ...[
+            Divider(color: theme.colorScheme.outlineVariant, height: 1),
+            const SizedBox(height: 12),
+          ],
           _ReceiptRow(label: 'Subtotal', value: Money.format(subtotal)),
           if (tax > 0) ...[
             const SizedBox(height: 9),

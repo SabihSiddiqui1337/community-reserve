@@ -80,6 +80,7 @@ _Community _$CommunityFromJson(Map<String, dynamic> json) => _Community(
   featureFlags: json['featureFlags'] == null
       ? const FeatureFlags()
       : FeatureFlags.fromJson(json['featureFlags'] as Map<String, dynamic>),
+  residentPortalUrl: json['residentPortalUrl'] as String?,
 );
 
 Map<String, dynamic> _$CommunityToJson(_Community instance) =>
@@ -91,4 +92,5 @@ Map<String, dynamic> _$CommunityToJson(_Community instance) =>
       'branding': instance.branding,
       'settings': instance.settings,
       'featureFlags': instance.featureFlags,
+      'residentPortalUrl': instance.residentPortalUrl,
     };

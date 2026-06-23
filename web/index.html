@@ -59,6 +59,10 @@
   -->
   <script>
     (function () {
+      // The emulator-only hacks below must NEVER run in production, or the user
+      // gets logged out on every visit. Gate them on a localhost host.
+      var isLocal = location.hostname === '127.0.0.1'
+        || location.hostname === 'localhost';
       var booted = false;
       function boot() {
         if (booted) return;
@@ -68,7 +72,13 @@
         s.async = true;
         document.body.appendChild(s);
       }
-      // Remove any old Flutter service worker so fresh builds always load.
+      if (!isLocal) {
+        // PRODUCTION: keep the Firebase auth session (stay signed in) and boot.
+        boot();
+        return;
+      }
+      // DEV/EMULATOR ONLY: clear any stale service worker so fresh builds load,
+      // and wipe the Firebase auth IndexedDB so emulator login is deterministic.
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations()
           .then(function (rs) { rs.forEach(function (r) { r.unregister(); }); })

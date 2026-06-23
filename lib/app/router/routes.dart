@@ -15,9 +15,11 @@ class Routes {
 
   // Shell tabs
   static const events = '/events';
+  static const hoa = '/hoa';
   static const book = '/book';
   static const myBookings = '/bookings';
-  static const profile = '/profile';
+  static const more = '/more'; // was 'Profile' — now the "More" tab
+
   static const notifications = '/notifications';
   static const reservationDetail = '/reservation/:id';
   static String reservationDetailTo(String id) => '/reservation/$id';

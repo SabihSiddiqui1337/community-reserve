@@ -21,6 +21,7 @@ import '../../features/booking/presentation/slot_screen.dart';
 import '../../features/booking/presentation/sport_picker_screen.dart';
 import '../../features/community/presentation/join_community_screen.dart';
 import '../../features/events/presentation/events_screen.dart';
+import '../../features/hoa/presentation/hoa_portal_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/payments/presentation/payment_info_screen.dart';
 import '../../features/profile/presentation/account_info_screen.dart';
@@ -166,10 +167,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               ],
             ),
           ]),
-          // 4 — Profile
+          // 4 — More (was Profile; Admin now lives as a row inside here)
           StatefulShellBranch(routes: [
             GoRoute(
-                path: Routes.profile, builder: (_, _) => const ProfileScreen()),
+                path: Routes.more, builder: (_, _) => const ProfileScreen()),
+          ]),
+          // 5 — HOA resident portal (embedded WebView). Hidden as a tab when
+          // the community has no residentPortalUrl, but routable.
+          StatefulShellBranch(routes: [
+            GoRoute(
+                path: Routes.hoa, builder: (_, _) => const HoaPortalScreen()),
           ]),
         ],
       ),

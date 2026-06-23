@@ -122,13 +122,12 @@ class _AppToastState extends State<_AppToast>
       ),
     );
 
-    // Errors anchor to the bottom (above the floating nav); others to the top.
-    final slideBegin =
-        isError ? const Offset(0, 0.5) : const Offset(0, -0.5);
+    // Both success and errors anchor to the TOP — the bottom can be covered by
+    // dialogs / sheets / action bars, which would hide the message.
     final animated = FadeTransition(
       opacity: curved,
       child: SlideTransition(
-        position: Tween<Offset>(begin: slideBegin, end: Offset.zero)
+        position: Tween<Offset>(begin: const Offset(0, -0.5), end: Offset.zero)
             .animate(curved),
         child: card,
       ),
@@ -137,10 +136,7 @@ class _AppToastState extends State<_AppToast>
     return Positioned(
       left: 14,
       right: 14,
-      top: isError ? null : mq.padding.top + 10,
-      // Lift error toasts clear of the floating nav + any bottom action bar
-      // (e.g. the Book "Check out" total banner) so they sit ABOVE it.
-      bottom: isError ? mq.padding.bottom + 160 : null,
+      top: mq.padding.top + 10,
       child: animated,
     );
   }

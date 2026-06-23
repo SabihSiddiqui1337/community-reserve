@@ -18,10 +18,11 @@ class ProfileScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider).value;
     final membership = ref.watch(currentMembershipProvider);
     final community = ref.watch(activeCommunityProvider);
+    final isAdmin = ref.watch(isAdminProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: const Text('More'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
@@ -84,6 +85,21 @@ class ProfileScreen extends ConsumerWidget {
                 value: _residencyLabel(membership?.residencyStatus)),
           ]),
           const SizedBox(height: 16),
+          // Admin entry point — only for admins/directors. Styled identically
+          // to the Account row (same card, font color, chevron).
+          if (isAdmin) ...[
+            Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                leading: const Icon(Icons.shield_outlined),
+                title: const Text('Admin',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.go(Routes.admin),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           Card(
             margin: EdgeInsets.zero,
             child: ListTile(
@@ -100,6 +116,11 @@ class ProfileScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
             child: FilledButton.icon(
+              // Red — it's a destructive action (signing out).
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFD33A3F),
+                foregroundColor: Colors.white,
+              ),
               onPressed: () => _confirmSignOut(context, ref),
               icon: const Icon(Icons.logout),
               label: const Text('Sign out'),
@@ -129,6 +150,10 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFD33A3F),
+                    foregroundColor: Colors.white,
+                  ),
                   onPressed: () => Navigator.pop(dialogContext, true),
                   child: const Text('Sign out'),
                 ),

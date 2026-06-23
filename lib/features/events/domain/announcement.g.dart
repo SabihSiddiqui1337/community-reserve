@@ -12,6 +12,7 @@ _Announcement _$AnnouncementFromJson(Map<String, dynamic> json) =>
       title: json['title'] as String? ?? '',
       body: json['body'] as String? ?? '',
       authorName: json['authorName'] as String? ?? '',
+      authorId: json['authorId'] as String? ?? '',
       type: json['type'] as String? ?? 'announcement',
       createdAt: const TimestampConverter().fromJson(json['createdAt']),
     );
@@ -22,6 +23,7 @@ Map<String, dynamic> _$AnnouncementToJson(_Announcement instance) =>
       'title': instance.title,
       'body': instance.body,
       'authorName': instance.authorName,
+      'authorId': instance.authorId,
       'type': instance.type,
       'createdAt': const TimestampConverter().toJson(instance.createdAt),
     };

@@ -13,11 +13,12 @@
 	<!-- DEV ONLY: required so iOS lets the app reach the Mac's LAN IP. -->
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Amenry connects to the local Firebase emulator on your network during development.</string>
-	<!-- Required so picking a profile photo from the camera / library doesn't crash. -->
+	<!-- Required so picking a profile photo from the camera / library doesn't
+	     crash, and so the resident portal WebView can attach work-order photos. -->
 	<key>NSCameraUsageDescription</key>
-	<string>Amenry uses your camera to take a profile photo.</string>
+	<string>Amenry uses your camera to take a profile photo or attach a photo to a resident-portal request.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Amenry lets you choose a profile photo from your library.</string>
+	<string>Amenry lets you choose a photo from your library for your profile or to attach to a resident-portal request.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Amenry may use the microphone when capturing video.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/routes.dart';
 import '../../../../shared/dialogs/confirm.dart';
+import '../../../../shared/widgets/app_snack.dart';
 import '../../../amenities/data/amenity_repository.dart';
 import '../../../amenities/domain/amenity.dart';
 import '../../../community/application/tenant_providers.dart';
@@ -165,10 +166,8 @@ class _AmenityEditorState extends ConsumerState<_AmenityEditor> {
   Future<void> _save() async {
     final cid = ref.read(currentCommunityIdProvider);
     if (cid == null) return;
-    final messenger = ScaffoldMessenger.of(context);
     if (_name.text.trim().isEmpty) {
-      messenger.showSnackBar(
-          const SnackBar(content: Text('Please enter a name.')));
+      showError(context, 'Please enter a name.');
       return;
     }
     final amenity = (widget.amenity ?? const Amenity(id: '')).copyWith(
@@ -190,15 +189,14 @@ class _AmenityEditorState extends ConsumerState<_AmenityEditor> {
       await ref.read(amenityRepositoryProvider).save(cid, amenity);
       if (mounted) {
         Navigator.pop(context);
-        messenger.showSnackBar(const SnackBar(content: Text('Saved')));
+        showSnack(context, 'Saved');
       }
     } on FirebaseException catch (e) {
       if (mounted) setState(() => _saving = false);
-      messenger.showSnackBar(
-          SnackBar(content: Text('Save failed: ${e.message ?? e.code}')));
+      if (mounted) showError(context, 'Save failed: ${e.message ?? e.code}');
     } catch (e) {
       if (mounted) setState(() => _saving = false);
-      messenger.showSnackBar(SnackBar(content: Text('Save failed: $e')));
+      if (mounted) showError(context, 'Save failed: $e');
     }
   }
 
@@ -237,15 +235,14 @@ class _AmenityEditorState extends ConsumerState<_AmenityEditor> {
       ),
     );
     if (confirm != true || !mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(amenityRepositoryProvider).delete(cid, a.id);
       if (mounted) {
         Navigator.pop(context);
-        messenger.showSnackBar(const SnackBar(content: Text('Deleted')));
+        showSnack(context, 'Deleted');
       }
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+      if (mounted) showError(context, 'Delete failed: $e');
     }
   }
 

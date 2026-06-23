@@ -38,7 +38,7 @@ export const createReservation = onCall(async (request) => {
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Sign in to book.");
 
-  const { communityId, amenityId, startTime, endTime, paymentId, court } =
+  const { communityId, amenityId, startTime, endTime, paymentId, court, paymentMethod } =
     request.data ?? {};
   if (!communityId || !amenityId || !startTime || !endTime) {
     throw new HttpsError("invalid-argument", "Missing booking fields.");
@@ -203,6 +203,7 @@ export const createReservation = onCall(async (request) => {
       createdAt: Timestamp.now(),
       cancelledAt: null,
       paymentId: paymentId ?? null,
+      paymentMethod: typeof paymentMethod === "string" ? paymentMethod : null,
       subtotalCents,
       taxCents,
     });
