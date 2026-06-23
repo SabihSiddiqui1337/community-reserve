@@ -125,6 +125,9 @@ class AppTheme {
         filled: true,
         fillColor: surface2,
         hintStyle: const TextStyle(color: muted),
+        // Prefix icon: lime when focused, muted otherwise — never red on error.
+        prefixIconColor: WidgetStateColor.resolveWith((states) =>
+            states.contains(WidgetState.focused) ? lime : muted),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,

@@ -7,7 +7,6 @@ import '../../../app/router/routes.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../amenities/data/amenity_repository.dart';
 import '../../amenities/domain/amenity.dart';
-import '../../notifications/data/notification_repository.dart';
 
 /// Display order for the sport/space picker (Event Hall first).
 int _order(String type) => switch (type) {
@@ -51,15 +50,9 @@ class SportPickerScreen extends ConsumerWidget {
             return ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                Row(
-                  children: [
-                    Text('Book',
-                        style: theme.textTheme.headlineMedium
-                            ?.copyWith(fontWeight: FontWeight.bold)),
-                    const Spacer(),
-                    const _NotificationsBell(),
-                  ],
-                ),
+                Text('Book',
+                    style: theme.textTheme.headlineMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 Text('Choose what you’d like to reserve',
                     style: theme.textTheme.bodyMedium),
@@ -79,52 +72,67 @@ class SportPickerScreen extends ConsumerWidget {
 }
 
 /// 60×60 rounded thumbnail: a photo asset when available, else a lime-gradient
-/// icon tile.
+/// icon tile. When [enabled] is false (coming soon / maintenance) it greys out.
 class _SportThumb extends StatelessWidget {
-  const _SportThumb({required this.type});
+  const _SportThumb({required this.type, this.enabled = true});
   final String type;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final image = _imageFor(type);
     if (image != null) {
-      return ClipRRect(
+      final img = ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: Image.asset(image,
-            height: 60, width: 60, fit: BoxFit.cover),
+        child: Image.asset(image, height: 60, width: 60, fit: BoxFit.cover),
       );
+      return enabled ? img : Opacity(opacity: 0.45, child: img);
     }
     return Container(
       height: 60,
       width: 60,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-            colors: [theme.colorScheme.primary, theme.colorScheme.secondary]),
+        gradient: enabled
+            ? LinearGradient(colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.secondary
+              ])
+            : null,
+        color: enabled ? null : theme.colorScheme.surfaceContainerHighest,
+        border: enabled
+            ? null
+            : Border.all(color: theme.colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Icon(_iconFor(type), color: AppTheme.onLime, size: 28),
+      child: Icon(_iconFor(type),
+          color: enabled ? AppTheme.onLime : theme.colorScheme.onSurfaceVariant,
+          size: 28),
     );
   }
 }
 
-/// Bell with an unread badge that opens the in-app notification inbox.
-class _NotificationsBell extends ConsumerWidget {
-  const _NotificationsBell();
+/// Small grey pill shown on unbookable amenities ("Coming Soon"/"Maintenance").
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.label});
+  final String label;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final unread = ref.watch(unreadCountProvider);
-    return IconButton(
-      tooltip: 'Notifications',
-      onPressed: () => context.push(Routes.notifications),
-      icon: Badge(
-        isLabelVisible: unread > 0,
-        label: Text('$unread'),
-        backgroundColor: theme.colorScheme.error,
-        child: const Icon(Icons.notifications_none),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
+      child: Text(label,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+            color: theme.colorScheme.onSurfaceVariant,
+          )),
     );
   }
 }
@@ -137,10 +145,19 @@ class _SportCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bookable = amenity.isBookable;
+    final statusLabel = switch (amenity.status) {
+      AmenityStatus.comingSoon => 'Coming Soon',
+      AmenityStatus.maintenance => 'Maintenance',
+      _ => null,
+    };
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Material(
-        color: theme.colorScheme.surfaceContainerHigh,
+        // Unbookable amenities sit on a flatter, lighter grey so they read as
+        // disabled (not tappable).
+        color: bookable
+            ? theme.colorScheme.surfaceContainerHigh
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(20),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -151,15 +168,21 @@ class _SportCard extends StatelessWidget {
             padding: const EdgeInsets.all(18),
             child: Row(
               children: [
-                _SportThumb(type: amenity.type),
+                _SportThumb(type: amenity.type, enabled: bookable),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(amenity.name,
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold)),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color:
+                            bookable ? null : theme.colorScheme.onSurfaceVariant,
+                      )),
                 ),
-                Icon(bookable ? Icons.chevron_right : Icons.lock_outline,
-                    color: theme.colorScheme.onSurfaceVariant),
+                if (bookable)
+                  Icon(Icons.chevron_right,
+                      color: theme.colorScheme.onSurfaceVariant)
+                else if (statusLabel != null)
+                  _StatusChip(label: statusLabel),
               ],
             ),
           ),

@@ -60,7 +60,15 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       switch (stage) {
         case OnboardingStage.loading:
-          return loc == Routes.splash ? null : Routes.splash;
+          // Cold start sits on the splash. A fresh login briefly loads the
+          // membership — keep the user on the auth screen (its button keeps
+          // spinning) instead of flashing the splash, then jump to the app.
+          return (loc == Routes.splash ||
+                  loc == Routes.signIn ||
+                  loc == Routes.signUp ||
+                  loc == Routes.forgotPassword)
+              ? null
+              : Routes.splash;
         case OnboardingStage.signedOut:
           return (loc == Routes.signIn ||
                   loc == Routes.signUp ||

@@ -45,10 +45,12 @@ class MembershipRepository {
   /// Resident joins a community — creates a pending membership (keeps `userId`
   /// in the doc so collection-group queries can find it).
   Future<void> join(String cid, String uid, {String unit = ''}) async {
-    final ref = _col(cid).doc(uid);
-    final snap = await ref.get();
-    if (snap.exists) return; // already a member
-    await ref.set(Membership(userId: uid, unit: unit).toJson());
+    // A brand-new resident creates their OWN membership (a *create*). We must
+    // not pre-check with get() — the rules deny reading a membership doc that
+    // doesn't exist yet for a non-member, so the get() would throw and bounce
+    // signup back to "find your community". set() on a missing doc is a create,
+    // which the rules allow (role=resident, residencyStatus=pending, own uid).
+    await _col(cid).doc(uid).set(Membership(userId: uid, unit: unit).toJson());
   }
 
   /// Attach the uploaded residency doc; (re)sets status to pending.

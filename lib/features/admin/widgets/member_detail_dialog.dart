@@ -86,6 +86,70 @@ class _MemberDetailDialog extends ConsumerWidget {
     return ok ?? false;
   }
 
+  void _viewDocument(BuildContext context) {
+    final url = membership.verificationDocUrl;
+    if (url == null || url.isEmpty) return;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: InteractiveViewer(
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (_, child, progress) {
+                    if (progress == null) return child;
+                    return const SizedBox(
+                      height: 200,
+                      width: 200,
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  },
+                  errorBuilder: (_, _, _) => Container(
+                    height: 200,
+                    width: 200,
+                    color: Colors.black54,
+                    alignment: Alignment.center,
+                    child: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.broken_image_outlined,
+                            color: Colors.white70),
+                        SizedBox(height: 8),
+                        Text(
+                          "Couldn't load document",
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Material(
+                color: Colors.black54,
+                shape: const CircleBorder(),
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  tooltip: 'Close',
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _approve(BuildContext context, WidgetRef ref) async {
     if (!await _confirm(context, approve: true)) return;
     if (!context.mounted) return;
@@ -164,6 +228,10 @@ class _MemberDetailDialog extends ConsumerWidget {
               label: 'Residency status',
               value: membership.residencyStatus.name,
             ),
+            _DocumentRow(
+              hasDocument: (membership.verificationDocUrl ?? '').isNotEmpty,
+              onView: () => _viewDocument(context),
+            ),
           ],
         ),
       ),
@@ -193,6 +261,60 @@ class _MemberDetailDialog extends ConsumerWidget {
               ),
             ]
           : null,
+    );
+  }
+}
+
+class _DocumentRow extends StatelessWidget {
+  const _DocumentRow({required this.hasDocument, required this.onView});
+  final bool hasDocument;
+  final VoidCallback onView;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.description_outlined, size: 20, color: AppTheme.lime),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Document',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                if (hasDocument) ...[
+                  Text('Document uploaded', style: theme.textTheme.bodyMedium),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.lime,
+                      side: BorderSide(
+                        color: AppTheme.lime.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    onPressed: onView,
+                    icon: const Icon(Icons.visibility_outlined, size: 18),
+                    label: const Text('View Document'),
+                  ),
+                ] else
+                  Text(
+                    'No document uploaded',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

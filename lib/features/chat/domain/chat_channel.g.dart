@@ -11,6 +11,7 @@ _ChatChannel _$ChatChannelFromJson(Map<String, dynamic> json) => _ChatChannel(
   name: json['name'] as String? ?? '',
   isGeneral: json['isGeneral'] as bool? ?? false,
   createdAt: const TimestampConverter().fromJson(json['createdAt']),
+  lastAt: const TimestampConverter().fromJson(json['lastAt']),
 );
 
 Map<String, dynamic> _$ChatChannelToJson(_ChatChannel instance) =>
@@ -19,4 +20,5 @@ Map<String, dynamic> _$ChatChannelToJson(_ChatChannel instance) =>
       'name': instance.name,
       'isGeneral': instance.isGeneral,
       'createdAt': const TimestampConverter().toJson(instance.createdAt),
+      'lastAt': const TimestampConverter().toJson(instance.lastAt),
     };

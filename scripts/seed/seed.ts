@@ -204,6 +204,7 @@ async function main(): Promise<void> {
       { id: "hall", type: "hall", name: "Event Hall", description: "Private event space for gatherings and parties.", status: "active", slotMinutes: 60, capacity: 1, isPaid: true, amountCents: 500, closeHour: 24 },
       { id: "pickleball", type: "pickleballCourt", name: "Pickleball", description: "Two championship courts with lights.", status: "active", slotMinutes: 60, capacity: 2, isPaid: true, amountCents: 500 },
       { id: "basketball", type: "basketball", name: "Basketball", description: "Full indoor court.", status: "active", slotMinutes: 60, capacity: 1, isPaid: true, amountCents: 500 },
+      { id: "gym", type: "gym", name: "Fitness Gym", description: "Cardio + weights. Opening soon!", status: "comingSoon", slotMinutes: 60, capacity: 1 },
     ],
     members: [
       { uid: "admin-uid", email: "admin@maplegrove.test", name: "Dana Director", role: "admin", residencyStatus: "verified", unit: "A-1", address: "100 Maplewood Dr, Austin TX 78701" },
@@ -292,6 +293,7 @@ async function main(): Promise<void> {
     name: "General",
     isGeneral: true,
     createdAt: Timestamp.fromMillis(now - 30 * 86_400_000),
+    lastAt: ago(30), // most recent general message (drives the unread dot)
   });
   await db.doc(`${chatBase}/channels/announcements`).set({
     name: "Announcements",

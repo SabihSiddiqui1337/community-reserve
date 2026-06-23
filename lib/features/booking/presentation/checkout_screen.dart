@@ -142,9 +142,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         final total = subtotal + tax;
         final capacity = amenity.capacity;
 
-        // Split the billed window into per-hour line items for the breakdown.
+        // Per-hour line items for the FULL slot (the court's regular cost). When
+        // the slot already started we still show the full price, then a prorated
+        // "charged for the remaining minutes" line below.
         final segments = <(DateTime, DateTime, int)>[];
-        var segStart = billedStart;
+        var segStart = widget.start;
         while (segStart.isBefore(widget.end)) {
           var segEnd = segStart.add(const Duration(hours: 1));
           if (segEnd.isAfter(widget.end)) segEnd = widget.end;
@@ -231,14 +233,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     value: Money.format(seg.$3),
                     subtle: true,
                   ),
+                // Slot already started → show the prorated charge for the
+                // remaining minutes (the full price is shown above).
                 if (alreadyStarted)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2, bottom: 4),
-                    child: Text(
-                      'Charged for the remaining $billedMinutes min.',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                    ),
+                  _Line(
+                    label: 'Charged for remaining $billedMinutes min',
+                    value: Money.format(subtotal),
+                    subtle: true,
+                    highlight: true,
                   ),
                 const Divider(),
                 _Line(label: 'Subtotal', value: Money.format(subtotal)),
@@ -371,7 +373,10 @@ class _CourtSelector extends StatelessWidget {
 
 class _Line extends StatelessWidget {
   const _Line(
-      {required this.label, required this.value, this.subtle = false});
+      {required this.label,
+      required this.value,
+      this.subtle = false,
+      this.highlight = false});
   final String label;
   final String value;
 
@@ -379,22 +384,30 @@ class _Line extends StatelessWidget {
   /// Subtotal / Tax rows.
   final bool subtle;
 
+  /// Draws the row in the accent colour (used for the prorated charge line).
+  final bool highlight;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final base = subtle
-        ? theme.textTheme.bodyMedium
-            ?.copyWith(color: theme.colorScheme.onSurfaceVariant)
-        : theme.textTheme.bodyLarge;
+    final color = highlight
+        ? theme.colorScheme.primary
+        : (subtle ? theme.colorScheme.onSurfaceVariant : null);
+    final base = (subtle ? theme.textTheme.bodyMedium : theme.textTheme.bodyLarge)
+        ?.copyWith(color: color);
     return Padding(
       padding: EdgeInsets.symmetric(vertical: subtle ? 5 : 12),
       child: Row(
         children: [
-          Expanded(child: Text(label, style: base)),
+          Expanded(
+              child: Text(label,
+                  style: highlight
+                      ? base?.copyWith(fontWeight: FontWeight.w600)
+                      : base)),
           const SizedBox(width: 12),
           Text(
             value,
-            style: subtle
+            style: (subtle && !highlight)
                 ? base
                 : base?.copyWith(fontWeight: FontWeight.bold),
           ),

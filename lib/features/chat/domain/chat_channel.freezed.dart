@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ChatChannel {
 
- String get id; String get name; bool get isGeneral;@TimestampConverter() DateTime? get createdAt;
+ String get id; String get name; bool get isGeneral;@TimestampConverter() DateTime? get createdAt;@TimestampConverter() DateTime? get lastAt;
 /// Create a copy of ChatChannel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ChatChannelCopyWith<ChatChannel> get copyWith => _$ChatChannelCopyWithImpl<Chat
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChatChannel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.isGeneral, isGeneral) || other.isGeneral == isGeneral)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChatChannel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.isGeneral, isGeneral) || other.isGeneral == isGeneral)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastAt, lastAt) || other.lastAt == lastAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,isGeneral,createdAt);
+int get hashCode => Object.hash(runtimeType,id,name,isGeneral,createdAt,lastAt);
 
 @override
 String toString() {
-  return 'ChatChannel(id: $id, name: $name, isGeneral: $isGeneral, createdAt: $createdAt)';
+  return 'ChatChannel(id: $id, name: $name, isGeneral: $isGeneral, createdAt: $createdAt, lastAt: $lastAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ChatChannelCopyWith<$Res>  {
   factory $ChatChannelCopyWith(ChatChannel value, $Res Function(ChatChannel) _then) = _$ChatChannelCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, bool isGeneral,@TimestampConverter() DateTime? createdAt
+ String id, String name, bool isGeneral,@TimestampConverter() DateTime? createdAt,@TimestampConverter() DateTime? lastAt
 });
 
 
@@ -65,12 +65,13 @@ class _$ChatChannelCopyWithImpl<$Res>
 
 /// Create a copy of ChatChannel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? isGeneral = null,Object? createdAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? isGeneral = null,Object? createdAt = freezed,Object? lastAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,isGeneral: null == isGeneral ? _self.isGeneral : isGeneral // ignore: cast_nullable_to_non_nullable
 as bool,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,lastAt: freezed == lastAt ? _self.lastAt : lastAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));
 }
@@ -156,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  bool isGeneral, @TimestampConverter()  DateTime? createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  bool isGeneral, @TimestampConverter()  DateTime? createdAt, @TimestampConverter()  DateTime? lastAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ChatChannel() when $default != null:
-return $default(_that.id,_that.name,_that.isGeneral,_that.createdAt);case _:
+return $default(_that.id,_that.name,_that.isGeneral,_that.createdAt,_that.lastAt);case _:
   return orElse();
 
 }
@@ -177,10 +178,10 @@ return $default(_that.id,_that.name,_that.isGeneral,_that.createdAt);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  bool isGeneral, @TimestampConverter()  DateTime? createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  bool isGeneral, @TimestampConverter()  DateTime? createdAt, @TimestampConverter()  DateTime? lastAt)  $default,) {final _that = this;
 switch (_that) {
 case _ChatChannel():
-return $default(_that.id,_that.name,_that.isGeneral,_that.createdAt);case _:
+return $default(_that.id,_that.name,_that.isGeneral,_that.createdAt,_that.lastAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -197,10 +198,10 @@ return $default(_that.id,_that.name,_that.isGeneral,_that.createdAt);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  bool isGeneral, @TimestampConverter()  DateTime? createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  bool isGeneral, @TimestampConverter()  DateTime? createdAt, @TimestampConverter()  DateTime? lastAt)?  $default,) {final _that = this;
 switch (_that) {
 case _ChatChannel() when $default != null:
-return $default(_that.id,_that.name,_that.isGeneral,_that.createdAt);case _:
+return $default(_that.id,_that.name,_that.isGeneral,_that.createdAt,_that.lastAt);case _:
   return null;
 
 }
@@ -212,13 +213,14 @@ return $default(_that.id,_that.name,_that.isGeneral,_that.createdAt);case _:
 @JsonSerializable()
 
 class _ChatChannel implements ChatChannel {
-  const _ChatChannel({required this.id, this.name = '', this.isGeneral = false, @TimestampConverter() this.createdAt});
+  const _ChatChannel({required this.id, this.name = '', this.isGeneral = false, @TimestampConverter() this.createdAt, @TimestampConverter() this.lastAt});
   factory _ChatChannel.fromJson(Map<String, dynamic> json) => _$ChatChannelFromJson(json);
 
 @override final  String id;
 @override@JsonKey() final  String name;
 @override@JsonKey() final  bool isGeneral;
 @override@TimestampConverter() final  DateTime? createdAt;
+@override@TimestampConverter() final  DateTime? lastAt;
 
 /// Create a copy of ChatChannel
 /// with the given fields replaced by the non-null parameter values.
@@ -233,16 +235,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ChatChannel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.isGeneral, isGeneral) || other.isGeneral == isGeneral)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ChatChannel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.isGeneral, isGeneral) || other.isGeneral == isGeneral)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastAt, lastAt) || other.lastAt == lastAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,isGeneral,createdAt);
+int get hashCode => Object.hash(runtimeType,id,name,isGeneral,createdAt,lastAt);
 
 @override
 String toString() {
-  return 'ChatChannel(id: $id, name: $name, isGeneral: $isGeneral, createdAt: $createdAt)';
+  return 'ChatChannel(id: $id, name: $name, isGeneral: $isGeneral, createdAt: $createdAt, lastAt: $lastAt)';
 }
 
 
@@ -253,7 +255,7 @@ abstract mixin class _$ChatChannelCopyWith<$Res> implements $ChatChannelCopyWith
   factory _$ChatChannelCopyWith(_ChatChannel value, $Res Function(_ChatChannel) _then) = __$ChatChannelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, bool isGeneral,@TimestampConverter() DateTime? createdAt
+ String id, String name, bool isGeneral,@TimestampConverter() DateTime? createdAt,@TimestampConverter() DateTime? lastAt
 });
 
 
@@ -270,12 +272,13 @@ class __$ChatChannelCopyWithImpl<$Res>
 
 /// Create a copy of ChatChannel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? isGeneral = null,Object? createdAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? isGeneral = null,Object? createdAt = freezed,Object? lastAt = freezed,}) {
   return _then(_ChatChannel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,isGeneral: null == isGeneral ? _self.isGeneral : isGeneral // ignore: cast_nullable_to_non_nullable
 as bool,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,lastAt: freezed == lastAt ? _self.lastAt : lastAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));
 }

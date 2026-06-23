@@ -23,6 +23,35 @@ final dmThreadsProvider = StreamProvider<List<DmThread>>((ref) {
   return ref.watch(chatRepositoryProvider).watchDmThreads(cid, uid);
 });
 
+/// When the resident last opened community chat (in-memory). Defaults to the
+/// epoch so any existing message reads as unread until they open it once.
+class ChatLastOpened extends Notifier<DateTime> {
+  @override
+  DateTime build() => DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// Mark everything up to now as read (clears the unread dot).
+  void markRead() => state = DateTime.now();
+}
+
+final chatLastOpenedProvider =
+    NotifierProvider<ChatLastOpened, DateTime>(ChatLastOpened.new);
+
+/// True when any channel/DM has activity newer than the last time chat was
+/// opened — drives the green dot on the chat button.
+final chatHasUnreadProvider = Provider<bool>((ref) {
+  final lastOpened = ref.watch(chatLastOpenedProvider);
+  final channels = ref.watch(channelsProvider).value ?? const <ChatChannel>[];
+  final dms = ref.watch(dmThreadsProvider).value ?? const <DmThread>[];
+  DateTime? latest;
+  for (final at in [
+    ...channels.map((c) => c.lastAt),
+    ...dms.map((d) => d.lastAt),
+  ]) {
+    if (at != null && (latest == null || at.isAfter(latest))) latest = at;
+  }
+  return latest != null && latest.isAfter(lastOpened);
+});
+
 /// Messages for a given conversation target (channel or DM).
 final messagesProvider =
     StreamProvider.family<List<ChatMessage>, ChatTarget>((ref, target) {

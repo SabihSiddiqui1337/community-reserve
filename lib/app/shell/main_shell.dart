@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/chat/data/chat_providers.dart';
 import '../../features/chat/presentation/community_chat_sheet.dart';
 import '../../features/community/application/tenant_providers.dart';
 import '../../features/notifications/data/fcm_service.dart';
@@ -73,9 +74,7 @@ class MainShell extends ConsumerWidget {
       // bars (e.g. the Book "Reserve" bar) and FABs aren't covered by it.
       extendBody: false,
       body: navigationShell,
-      floatingActionButton: showChat
-          ? _ChatFab(onTap: () => showCommunityChat(context, ref))
-          : null,
+      floatingActionButton: showChat ? const _ChatFab() : null,
       bottomNavigationBar: _FloatingNav(
         tabs: tabs,
         selected: selected,
@@ -88,15 +87,20 @@ class MainShell extends ConsumerWidget {
   }
 }
 
-/// Dark circular Community-Chat button with a small unread dot (IMG 1552).
-class _ChatFab extends StatelessWidget {
-  const _ChatFab({required this.onTap});
-  final VoidCallback onTap;
+/// Dark circular Community-Chat button. The green dot shows only when there are
+/// unread messages; opening chat clears it.
+class _ChatFab extends ConsumerWidget {
+  const _ChatFab();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasUnread = ref.watch(chatHasUnreadProvider);
     return GestureDetector(
-      onTap: onTap,
+      onTap: () async {
+        await showCommunityChat(context, ref);
+        // Mark everything seen up to now as read → dot clears.
+        ref.read(chatLastOpenedProvider.notifier).markRead();
+      },
       child: Container(
         height: 56,
         width: 56,
@@ -113,19 +117,21 @@ class _ChatFab extends StatelessWidget {
           alignment: Alignment.center,
           children: [
             const Icon(Icons.forum_outlined, color: Colors.white, size: 24),
-            Positioned(
-              top: 14,
-              right: 15,
-              child: Container(
-                height: 9,
-                width: 9,
-                decoration: BoxDecoration(
-                  color: AppTheme.lime,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF1C1F26), width: 1.5),
+            if (hasUnread)
+              Positioned(
+                top: 14,
+                right: 15,
+                child: Container(
+                  height: 9,
+                  width: 9,
+                  decoration: BoxDecoration(
+                    color: AppTheme.lime,
+                    shape: BoxShape.circle,
+                    border:
+                        Border.all(color: const Color(0xFF1C1F26), width: 1.5),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),

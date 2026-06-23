@@ -14,10 +14,17 @@ class AuthController extends Notifier<AsyncValue<void>> {
 
   Future<bool> signIn(String email, String password) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    final result = await AsyncValue.guard(() async {
       await ref.read(authRepositoryProvider).signIn(email.trim(), password);
     });
-    return !state.hasError;
+    if (result.hasError) {
+      state = result;
+      return false;
+    }
+    // Success: keep the spinner running. The onboarding redirect swaps this
+    // screen for the app once the membership loads, so we never reset to a
+    // resting state that would flash the form / splash mid-redirect.
+    return true;
   }
 
   /// Creates the auth account + user profile and, when [communityId] is given,
@@ -58,6 +65,8 @@ class AuthController extends Notifier<AsyncValue<void>> {
     // instead of resolving on top of stale membership/profile data.
     ref.invalidate(userMembershipsProvider);
     ref.invalidate(currentUserProvider);
+    // Re-enable the sign-in button (signIn keeps the spinner on success).
+    state = const AsyncData(null);
   }
 }
 

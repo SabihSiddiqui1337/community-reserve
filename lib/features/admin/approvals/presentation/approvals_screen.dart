@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -87,26 +86,6 @@ class _ApprovalTile extends ConsumerWidget {
                   ),
                 ],
               ),
-              if (membership.verificationDocUrl != null) ...[
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: CachedNetworkImage(
-                    imageUrl: membership.verificationDocUrl!,
-                    height: 160,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    placeholder: (_, _) => const SizedBox(
-                      height: 160,
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                    errorWidget: (_, _, _) => const SizedBox(
-                      height: 160,
-                      child: Center(child: Icon(Icons.broken_image_outlined)),
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         ),

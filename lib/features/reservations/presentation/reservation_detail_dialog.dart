@@ -669,14 +669,33 @@ class _PaymentOutcome extends ConsumerWidget {
     final netCharged = total - refundAmount;
     final lime = theme.colorScheme.primary;
 
-    // Per-hour breakdown (mirrors the checkout Order Summary). Split the booked
-    // window into hour segments and distribute the paid subtotal across them so
-    // the rows always sum exactly to Subtotal (last segment takes any remainder).
-    final segments = <(DateTime, DateTime, int)>[];
+    // Per-hour breakdown (mirrors the checkout Order Summary). If the booking
+    // was charged for only the remaining minutes (booked after it started), the
+    // per-hour rows show the court's FULL regular cost, and a prorated "charged
+    // for remaining N min" line is shown below.
     final start = r.startTime;
     final end = r.endTime;
+    final created = r.createdAt;
+    final billedStart =
+        (start != null && created != null && created.isAfter(start))
+            ? created
+            : start;
+    final totalMins =
+        (start != null && end != null) ? end.difference(start).inMinutes : 0;
+    final billedMins = (billedStart != null && end != null)
+        ? end.difference(billedStart).inMinutes
+        : totalMins;
+    final wasProrated = start != null &&
+        billedStart != null &&
+        billedStart.isAfter(start) &&
+        billedMins > 0 &&
+        billedMins < totalMins;
+    // Un-prorated subtotal so the hour rows read at the regular court rate.
+    final fullSubtotal =
+        wasProrated ? (subtotal * totalMins / billedMins).round() : subtotal;
+
+    final segments = <(DateTime, DateTime, int)>[];
     if (start != null && end != null && end.isAfter(start)) {
-      final totalMins = end.difference(start).inMinutes;
       var segStart = start;
       var allocated = 0;
       while (segStart.isBefore(end)) {
@@ -684,8 +703,9 @@ class _PaymentOutcome extends ConsumerWidget {
         if (segEnd.isAfter(end)) segEnd = end;
         final mins = segEnd.difference(segStart).inMinutes;
         final isLast = !segEnd.isBefore(end);
-        final cents =
-            isLast ? subtotal - allocated : (subtotal * mins / totalMins).round();
+        final cents = isLast
+            ? fullSubtotal - allocated
+            : (fullSubtotal * mins / totalMins).round();
         allocated += cents;
         segments.add((segStart, segEnd, cents));
         segStart = segEnd;
@@ -719,6 +739,14 @@ class _PaymentOutcome extends ConsumerWidget {
               label:
                   '${DateFormat('h:mm a').format(seg.$1)} – ${DateFormat('h:mm a').format(seg.$2)}',
               value: Money.format(seg.$3),
+            ),
+            const SizedBox(height: 9),
+          ],
+          if (wasProrated) ...[
+            _ReceiptRow(
+              label: 'Charged for remaining $billedMins min',
+              value: Money.format(subtotal),
+              valueColor: lime,
             ),
             const SizedBox(height: 9),
           ],

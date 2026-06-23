@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router/routes.dart';
 import '../../../core/widgets/branded_background.dart';
+import '../../../shared/format/contact.dart';
 import '../../community/data/community_directory_repository.dart';
 import '../../community/domain/community_summary.dart';
 import '../application/auth_controller.dart';
@@ -131,6 +132,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: Form(
                   key: _formKey,
+                  // Validate live as the user types (errors appear/clear without
+                  // having to tap Sign up).
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -230,15 +234,19 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         TextFormField(
                           controller: _phone,
                           keyboardType: TextInputType.phone,
+                          // Digits only, auto-formats to (123) 456-7890, caps
+                          // at 10 digits.
+                          inputFormatters: [PhoneInputFormatter()],
                           decoration: const InputDecoration(
                             labelText: 'Phone',
+                            hintText: '(123) 456-7890',
                             prefixIcon: Icon(Icons.phone_outlined),
                           ),
                           validator: (v) {
                             final digits =
                                 (v ?? '').replaceAll(RegExp(r'\D'), '');
                             if (digits.length < 10) {
-                              return 'Enter a valid phone number';
+                              return 'Enter a valid 10-digit phone number';
                             }
                             return null;
                           },

@@ -14,6 +14,7 @@ abstract class ChatChannel with _$ChatChannel {
     @Default('') String name,
     @Default(false) bool isGeneral,
     @TimestampConverter() DateTime? createdAt,
+    @TimestampConverter() DateTime? lastAt, // last message time (unread signal)
   }) = _ChatChannel;
 
   factory ChatChannel.fromJson(Map<String, dynamic> json) =>
