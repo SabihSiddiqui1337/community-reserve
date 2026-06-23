@@ -12,6 +12,9 @@ import { MockAccessProvider } from "../access/MockAccessProvider";
 
 const OCCUPYING = ["booked", "checkedIn", "completed"];
 
+/** Sales-tax rate applied at checkout (matches the client booking flow). */
+const TAX_RATE = 0.0825;
+
 function normalizeSettings(s: Record<string, unknown>): CommunitySettings {
   return {
     maxBookingHoursPerWeek: (s.maxBookingHoursPerWeek as number) ?? 3,
@@ -120,6 +123,27 @@ export const createReservation = onCall(async (request) => {
     }
   }
 
+  // Price snapshot — capture exactly what is charged so a later tax-toggle
+  // never rewrites this booking. Authoritative: derived from the community's
+  // CURRENT taxEnabled setting (defaults on).
+  const taxEnabled =
+    communitySnap.data()!.settings?.taxEnabled !== false;
+  const amountCentsPerHour = isPaid
+    ? ((amenity.pricing?.amountCents as number) ?? 0)
+    : 0;
+  // Bill only for time the resident can actually use: the window
+  // [billedStart, end] where billedStart = max(slotStart, serverNow). Booking a
+  // slot that's already in progress is charged only for the remaining minutes.
+  const serverNow = new Date();
+  const billedStart =
+    serverNow.getTime() > start.getTime() ? serverNow : start;
+  const billedMinutes = Math.max(
+    0,
+    (end.getTime() - billedStart.getTime()) / 60_000
+  );
+  const subtotalCents = Math.round((amountCentsPerHour * billedMinutes) / 60);
+  const taxCents = taxEnabled ? Math.round(subtotalCents * TAX_RATE) : 0;
+
   const capacity = (amenity.capacity as number) ?? 1;
   const reservationsCol = paths.reservations(communityId);
   const reservationId = reservationsCol.doc().id;
@@ -179,6 +203,8 @@ export const createReservation = onCall(async (request) => {
       createdAt: Timestamp.now(),
       cancelledAt: null,
       paymentId: paymentId ?? null,
+      subtotalCents,
+      taxCents,
     });
   });
 

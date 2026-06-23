@@ -15,14 +15,14 @@ class AdminDashboardScreen extends ConsumerWidget {
     final community = ref.watch(activeCommunityProvider);
     // Reservations & Branding intentionally removed.
     final items = <_AdminItem>[
-      _AdminItem('Residency approvals', Icons.how_to_reg_outlined,
+      _AdminItem('Residency Approvals', Icons.how_to_reg_outlined,
           const Color(0xFF22C55E), Routes.adminApprovals),
       _AdminItem('Amenities', Icons.sports_tennis_outlined,
           const Color(0xFF3B82F6), Routes.adminAmenities),
       _AdminItem(
           'Reports', Icons.insights_outlined, const Color(0xFFA855F7),
           Routes.adminReports),
-      _AdminItem('Booking rules', Icons.tune, const Color(0xFFF59E0B),
+      _AdminItem('Booking Rules', Icons.tune, const Color(0xFFF59E0B),
           Routes.adminSettings),
       _AdminItem('Members', Icons.groups_outlined, const Color(0xFF14B8A6),
           Routes.adminMembers),

@@ -95,12 +95,10 @@ class EventsScreen extends ConsumerWidget {
     final titleCtl = TextEditingController();
     final bodyCtl = TextEditingController();
     var type = 'announcement';
-    final posted = await showModalBottomSheet<bool>(
+    final posted = await showDialog<bool>(
       context: context,
-      isScrollControlled: true,
-      useRootNavigator: true, // cover the floating nav bar
-      isDismissible: false, // close only via the X (with a discard prompt)
-      enableDrag: false,
+      barrierDismissible: false,
+      useRootNavigator: true,
       builder: (context) {
         Future<void> close() async {
           final dirty = titleCtl.text.trim().isNotEmpty ||
@@ -110,65 +108,66 @@ class EventsScreen extends ConsumerWidget {
         }
 
         return StatefulBuilder(
-          builder: (context, setState) => PopScope(
-            canPop: false,
-            onPopInvokedWithResult: (didPop, _) {
-              if (!didPop) close();
-            },
+          builder: (context, setState) => Dialog(
+            insetPadding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
             child: Padding(
               padding: EdgeInsets.only(
                   left: 20,
                   right: 20,
-                  top: 20,
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text('New post',
-                            style: Theme.of(context).textTheme.titleLarge),
-                      ),
-                      IconButton(
-                          icon: const Icon(Icons.close), onPressed: close),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      ChoiceChip(
-                        label: const Text('Announcement'),
-                        selected: type == 'announcement',
-                        onSelected: (_) =>
-                            setState(() => type = 'announcement'),
-                      ),
-                      const SizedBox(width: 8),
-                      ChoiceChip(
-                        label: const Text('Event'),
-                        selected: type == 'event',
-                        onSelected: (_) => setState(() => type = 'event'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: titleCtl,
-                    decoration: const InputDecoration(labelText: 'Title'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: bodyCtl,
-                    maxLines: 4,
-                    decoration: const InputDecoration(labelText: 'Description'),
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: const Text('Post'),
-                  ),
-                ],
+                  top: 14,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 18),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text('New Post',
+                              style: Theme.of(context).textTheme.titleLarge),
+                        ),
+                        IconButton(
+                            icon: const Icon(Icons.close), onPressed: close),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        ChoiceChip(
+                          label: const Text('Announcement'),
+                          selected: type == 'announcement',
+                          onSelected: (_) =>
+                              setState(() => type = 'announcement'),
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: const Text('Event'),
+                          selected: type == 'event',
+                          onSelected: (_) => setState(() => type = 'event'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: titleCtl,
+                      decoration: const InputDecoration(labelText: 'Title'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: bodyCtl,
+                      maxLines: 4,
+                      decoration:
+                          const InputDecoration(labelText: 'Description'),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Post'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

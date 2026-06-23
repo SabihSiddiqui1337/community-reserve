@@ -36,6 +36,11 @@ abstract class Reservation with _$Reservation {
     String? paymentId,
     // Snapshot of how it was paid, e.g. "Discover •••• 9293" or "Apple Pay".
     String? paymentMethod,
+    // Price snapshot captured at booking time (integer cents). These freeze
+    // exactly what was charged so a later tax-setting toggle never rewrites a
+    // past booking. `taxCents == 0` means tax was off when this was booked.
+    int? subtotalCents,
+    int? taxCents,
   }) = _Reservation;
 
   factory Reservation.fromJson(Map<String, dynamic> json) =>

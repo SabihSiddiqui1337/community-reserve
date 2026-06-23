@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/community/application/tenant_providers.dart';
+import '../shared/widgets/app_snack.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
@@ -32,7 +33,15 @@ class AmenryApp extends ConsumerWidget {
             alignment: Alignment.centerLeft,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
-              child: child ?? const SizedBox.shrink(),
+              // A toast overlay above the router so toasts render on top even
+              // during the route change that can follow showSnack().
+              child: Overlay(
+                key: toastOverlayKey,
+                initialEntries: [
+                  OverlayEntry(
+                      builder: (_) => child ?? const SizedBox.shrink()),
+                ],
+              ),
             ),
           ),
         );

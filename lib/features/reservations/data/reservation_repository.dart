@@ -72,6 +72,8 @@ class ReservationRepository {
     int? court,
   }) async {
     final callable = _functions.httpsCallable('createReservation');
+    // Note: subtotal/tax are computed and snapshotted server-side from the
+    // community's current taxEnabled setting — the client passes no amounts.
     final result = await callable.call<Map<String, dynamic>>({
       'communityId': communityId,
       'amenityId': amenityId,

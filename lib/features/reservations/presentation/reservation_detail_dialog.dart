@@ -34,11 +34,54 @@ int _chargeCents(Amenity? amenity, Reservation r) {
 /// Sales-tax rate applied at checkout (matches the booking flow).
 const _kTaxRate = 0.0825;
 
-/// The full amount paid — subtotal + tax — in cents.
+/// Subtotal in cents — the booking-time snapshot when present, else recomputed
+/// from the amenity per-hour price (older docs predating the snapshot).
+int _subtotalCents(Amenity? amenity, Reservation r) =>
+    r.subtotalCents ?? _chargeCents(amenity, r);
+
+/// Tax in cents — the booking-time snapshot when present (0 means tax was off
+/// at booking), else recomputed from the subtotal.
+int _taxCents(Amenity? amenity, Reservation r) =>
+    r.taxCents ?? (_subtotalCents(amenity, r) * _kTaxRate).round();
+
+/// The full amount paid — subtotal + tax — in cents (from the snapshot).
 int _totalCents(Amenity? amenity, Reservation r) {
-  final subtotal = _chargeCents(amenity, r);
+  final subtotal = _subtotalCents(amenity, r);
   if (subtotal == 0) return 0;
-  return subtotal + (subtotal * _kTaxRate).round();
+  return subtotal + _taxCents(amenity, r);
+}
+
+/// Client-side mirror of the server's prorated cancellation: keep the used
+/// fraction of time, refund the rest while preserving the booking-time tax
+/// decision. Returns (chargedCents, refundCents) in cents.
+({int charged, int refund}) _proration(Amenity? amenity, Reservation r,
+    {DateTime? asOf}) {
+  final subtotal = _subtotalCents(amenity, r);
+  final tax = _taxCents(amenity, r);
+  final total = subtotal + tax;
+  final start = r.startTime;
+  final end = r.endTime;
+  final at = asOf ?? DateTime.now();
+  if (total == 0 || start == null || end == null) {
+    return (charged: 0, refund: total);
+  }
+  // Proration is over the BILLED window [billedStart, end] where
+  // billedStart = max(slotStart, bookingTime). A slot booked after it began was
+  // only charged for the remaining minutes, so the used fraction is measured
+  // against that window. Mirrors cancelReservation.ts.
+  final createdAt = r.createdAt;
+  final billedStart =
+      (createdAt != null && createdAt.isAfter(start)) ? createdAt : start;
+  // Before the billed window starts → full refund, nothing charged.
+  if (!at.isAfter(billedStart)) return (charged: 0, refund: total);
+
+  final billedMinutes = end.difference(billedStart).inMinutes.clamp(1, 1 << 31);
+  final elapsedMinutes = at.difference(billedStart).inMinutes;
+  final usedFraction = (elapsedMinutes / billedMinutes).clamp(0.0, 1.0);
+  final keptSubtotal = (subtotal * usedFraction).round();
+  final keptTax = (keptSubtotal * (tax / (subtotal == 0 ? 1 : subtotal))).round();
+  final charged = keptSubtotal + keptTax;
+  return (charged: charged, refund: total - charged);
 }
 
 /// A reservation is "past" once it is no longer live/upcoming — i.e. completed,
@@ -116,19 +159,30 @@ class _ReservationDetailDialogState
     final cid = ref.read(currentCommunityIdProvider);
     if (cid == null) return;
 
-    // The refund shown is the full booking charge (per-hour price × hours).
-    // For free amenities nothing was charged. The server recomputes the
-    // authoritative amount.
+    // Prorated refund preview (mirrors the server). Before start the whole
+    // charge comes back; at/after start the used minutes are kept. For free
+    // amenities nothing was charged. The server recomputes authoritatively.
     final amenity = ref.read(amenityProvider(r.amenityId)).value;
     final paid = amenity?.pricing.isPaid ?? false;
-    // Full amount paid (subtotal + tax) — the whole charge is refunded.
-    final refundEstimate = _totalCents(amenity, r);
-    final hasRefund = paid && refundEstimate > 0;
+    final total = _totalCents(amenity, r);
+    final proration = _proration(amenity, r);
+    final refundEstimate = proration.refund;
+    final chargedEstimate = proration.charged;
+    final hasRefund = paid && total > 0;
 
     // A cancellation only counts once the reservation has started. Compute
     // whether we're at/after start and, if so, how many late cancellations the
     // resident has left (allowance − already-counted), floored at zero.
     final started = r.startTime != null && !DateTime.now().isBefore(r.startTime!);
+    // "Used" minutes are measured over the billed window [billedStart, end]
+    // (billedStart = max(start, bookingTime)), matching the proration above.
+    final billedStartForBanner =
+        (r.startTime != null && r.createdAt != null && r.createdAt!.isAfter(r.startTime!))
+            ? r.createdAt!
+            : r.startTime;
+    final usedMinutes = (started && billedStartForBanner != null)
+        ? DateTime.now().difference(billedStartForBanner).inMinutes.clamp(0, 1 << 31)
+        : 0;
     final community = ref.read(activeCommunityProvider);
     final membership = ref.read(currentMembershipProvider);
     final remaining = (community.settings.cancellationAllowance -
@@ -167,6 +221,26 @@ class _ReservationDetailDialogState
                         "You'll be refunded this amount.",
                         style: dialogTheme.textTheme.bodyMedium,
                       ),
+                      if (started && chargedEstimate > 0) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: dialogTheme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            "You've used ~$usedMinutes min, so you're charged "
+                            '${Money.format(chargedEstimate)} (incl. tax). '
+                            "You'll be refunded ${Money.format(refundEstimate)}.",
+                            textAlign: TextAlign.center,
+                            style: dialogTheme.textTheme.bodySmall?.copyWith(
+                                color:
+                                    dialogTheme.colorScheme.onSurfaceVariant),
+                          ),
+                        ),
+                      ],
                     ] else ...[
                       Icon(Icons.savings_outlined,
                           size: 32,
@@ -266,7 +340,7 @@ class _ReservationDetailDialogState
       }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
-        showSnack(context, e.message ?? 'Cancel failed');
+        showError(context, e.message ?? 'Cancel failed');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -511,7 +585,7 @@ class _PaymentOutcome extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final r = reservation;
-    final subtotal = _chargeCents(amenity, r);
+    final subtotal = _subtotalCents(amenity, r);
     // What it was paid with — the snapshot on the booking, else the user's
     // current card on file. Apple/Google Pay always shows the backing card's
     // last 4 too.
@@ -546,9 +620,14 @@ class _PaymentOutcome extends ConsumerWidget {
       );
     }
 
-    final tax = (subtotal * _kTaxRate).round();
+    final tax = _taxCents(amenity, r);
     final total = subtotal + tax;
     final refunded = r.status == ReservationStatus.cancelled;
+    // Prorated refund as of the cancellation time (snapshot-aware). Cancelling
+    // before start refunds the full total; at/after start keeps the used part.
+    final proration = _proration(amenity, r, asOf: r.cancelledAt);
+    final refundAmount = proration.refund;
+    final netCharged = total - refundAmount;
     final lime = theme.colorScheme.primary;
 
     return _ReceiptCard(
@@ -569,8 +648,10 @@ class _PaymentOutcome extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           _ReceiptRow(label: 'Subtotal', value: Money.format(subtotal)),
-          const SizedBox(height: 9),
-          _ReceiptRow(label: 'Tax (8.25%)', value: Money.format(tax)),
+          if (tax > 0) ...[
+            const SizedBox(height: 9),
+            _ReceiptRow(label: 'Tax (8.25%)', value: Money.format(tax)),
+          ],
           const SizedBox(height: 12),
           Divider(color: theme.colorScheme.outlineVariant, height: 1),
           const SizedBox(height: 12),
@@ -580,7 +661,7 @@ class _PaymentOutcome extends ConsumerWidget {
             const SizedBox(height: 12),
             _ReceiptRow(
               label: 'Refunded',
-              value: '−${Money.format(total)}',
+              value: '−${Money.format(refundAmount)}',
               strong: true,
               valueColor: lime,
             ),
@@ -588,9 +669,15 @@ class _PaymentOutcome extends ConsumerWidget {
             Divider(color: theme.colorScheme.outlineVariant, height: 1),
             const SizedBox(height: 12),
             _ReceiptRow(
-                label: 'Net charged', value: Money.format(0), strong: true),
+                label: 'Net charged',
+                value: Money.format(netCharged),
+                strong: true),
             const SizedBox(height: 10),
-            Text('This booking was cancelled and fully refunded.',
+            Text(
+                netCharged > 0
+                    ? 'This booking was cancelled after it started, so the '
+                        'used time was charged and the rest refunded.'
+                    : 'This booking was cancelled and fully refunded.',
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           ] else if (r.status == ReservationStatus.noShow) ...[

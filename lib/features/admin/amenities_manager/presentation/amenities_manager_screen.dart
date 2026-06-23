@@ -45,7 +45,7 @@ class AmenitiesManagerScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Amenities manager'),
+        title: const Text('Amenities Manager'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go(Routes.admin),

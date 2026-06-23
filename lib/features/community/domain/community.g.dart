@@ -36,6 +36,7 @@ _CommunitySettings _$CommunitySettingsFromJson(Map<String, dynamic> json) =>
           (json['cancellationCutoffMinutes'] as num?)?.toInt() ?? 60,
       cancellationAllowance:
           (json['cancellationAllowance'] as num?)?.toInt() ?? 2,
+      taxEnabled: json['taxEnabled'] as bool? ?? true,
     );
 
 Map<String, dynamic> _$CommunitySettingsToJson(_CommunitySettings instance) =>
@@ -48,6 +49,7 @@ Map<String, dynamic> _$CommunitySettingsToJson(_CommunitySettings instance) =>
       'noShowBanDays': instance.noShowBanDays,
       'cancellationCutoffMinutes': instance.cancellationCutoffMinutes,
       'cancellationAllowance': instance.cancellationAllowance,
+      'taxEnabled': instance.taxEnabled,
     };
 
 _FeatureFlags _$FeatureFlagsFromJson(Map<String, dynamic> json) =>

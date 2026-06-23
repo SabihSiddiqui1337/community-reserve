@@ -26,6 +26,7 @@ class _CommunitySettingsScreenState
   bool _init = false;
   bool _saving = false;
   bool _paymentsEnabled = false;
+  bool _taxEnabled = true;
 
   /// Every raw settings field we persist. Order here drives nothing — the
   /// sections below decide layout — but it keeps save/init in one place.
@@ -56,6 +57,7 @@ class _CommunitySettingsScreenState
     for (final key in _fields) {
       settings[key] = int.tryParse(_controllers[key]!.text.trim()) ?? 0;
     }
+    settings['taxEnabled'] = _taxEnabled;
     await ref.read(communityRepositoryProvider).update(cid, {
       'settings': settings,
       'featureFlags': {'paymentsEnabled': _paymentsEnabled},
@@ -63,6 +65,7 @@ class _CommunitySettingsScreenState
     if (mounted) {
       setState(() => _saving = false);
       showSnack(context, 'Settings saved.');
+      context.go(Routes.admin);
     }
   }
 
@@ -76,12 +79,13 @@ class _CommunitySettingsScreenState
         _controllers[key] = TextEditingController(text: '${s[key]}');
       }
       _paymentsEnabled = community.featureFlags.paymentsEnabled;
+      _taxEnabled = community.settings.taxEnabled;
       _init = true;
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Booking rules'),
+        title: const Text('Booking Rules'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go(Routes.admin),
@@ -103,18 +107,21 @@ class _CommunitySettingsScreenState
             children: [
               _SettingRow(
                 controller: _controllers['maxBookingHoursPerWeek']!,
+                defaultValue: 3,
                 label: 'Hours per week each resident can book',
                 helper: 'Total amenity time a resident can reserve in a week.',
                 suffix: 'hrs',
               ),
               _SettingRow(
                 controller: _controllers['advanceBookingDays']!,
+                defaultValue: 7,
                 label: 'How far ahead residents can book (days)',
                 helper: 'Residents can reserve slots up to this many days out.',
                 suffix: 'days',
               ),
               _SettingRow(
                 controller: _controllers['maxActiveReservationsPerUser']!,
+                defaultValue: 2,
                 label: 'Max active reservations per resident',
                 helper: 'How many upcoming bookings a resident can hold at once.',
               ),
@@ -126,6 +133,7 @@ class _CommunitySettingsScreenState
             children: [
               _SettingRow(
                 controller: _controllers['checkInGraceMinutes']!,
+                defaultValue: 15,
                 label: 'Check-in grace period (minutes)',
                 helper: 'How long after the start time a resident can still '
                     'check in before it counts as a no-show.',
@@ -133,11 +141,13 @@ class _CommunitySettingsScreenState
               ),
               _SettingRow(
                 controller: _controllers['noShowThreshold']!,
+                defaultValue: 3,
                 label: 'No-shows before a ban',
                 helper: 'Number of no-shows that triggers a temporary ban.',
               ),
               _SettingRow(
                 controller: _controllers['noShowBanDays']!,
+                defaultValue: 30,
                 label: 'Ban length (days)',
                 helper: 'How long a resident is blocked from booking after a ban.',
                 suffix: 'days',
@@ -150,12 +160,14 @@ class _CommunitySettingsScreenState
             children: [
               _SettingRow(
                 controller: _controllers['cancellationCutoffMinutes']!,
+                defaultValue: 60,
                 label: 'Free-cancel cutoff before start (minutes)',
                 helper: 'Cancelling earlier than this is always free.',
                 suffix: 'min',
               ),
               _SettingRow(
                 controller: _controllers['cancellationAllowance']!,
+                defaultValue: 2,
                 label: 'Late-cancellations allowed before flag',
                 helper: 'A cancellation only counts if made after the '
                     'reservation start time.',
@@ -172,6 +184,14 @@ class _CommunitySettingsScreenState
                 subtitle: const Text('Require payment for paid amenities.'),
                 value: _paymentsEnabled,
                 onChanged: (v) => setState(() => _paymentsEnabled = v),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Charge sales tax (8.25%)'),
+                subtitle: const Text(
+                    'Add 8.25% tax to paid bookings at checkout.'),
+                value: _taxEnabled,
+                onChanged: (v) => setState(() => _taxEnabled = v),
               ),
             ],
           ),
@@ -249,12 +269,14 @@ class _SettingRow extends StatelessWidget {
     required this.controller,
     required this.label,
     required this.helper,
+    required this.defaultValue,
     this.suffix,
   });
 
   final TextEditingController controller;
   final String label;
   final String helper;
+  final int defaultValue;
   final String? suffix;
 
   @override
@@ -287,6 +309,19 @@ class _SettingRow extends StatelessWidget {
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              // Tapping away from an empty field restores the default value.
+              onTapOutside: (_) {
+                if (controller.text.trim().isEmpty) {
+                  controller.text = '$defaultValue';
+                }
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
+              onEditingComplete: () {
+                if (controller.text.trim().isEmpty) {
+                  controller.text = '$defaultValue';
+                }
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
               decoration: InputDecoration(
                 isDense: true,
                 suffixText: suffix,

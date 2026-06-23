@@ -39,7 +39,10 @@ service cloud.firestore {
 
     // ---- Global user profiles ----
     match /users/{userId} {
-      allow read: if isSelf(userId) || isSuperAdmin();
+      // Any signed-in user may read a profile (needed so admins can review an
+      // applicant's name/phone/email and so chat/member pickers can show names).
+      // Production note: tighten to community-admin / denormalize PII if needed.
+      allow read: if isSignedIn();
       allow create, update: if isSelf(userId);
       allow delete: if false;
     }
@@ -119,6 +122,18 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys()
                .hasOnly(['status', 'cancelledAt']);
         allow create, delete: if false;
+      }
+
+      // Event reservation requests — a resident creates their own inquiry;
+      // admins read/manage all of them.
+      match /eventRequests/{requestId} {
+        allow read: if isSignedIn() && (
+          resource.data.userId == request.auth.uid
+          || isCommunityAdmin(communityId) || isSuperAdmin()
+        );
+        allow create: if isMember(communityId)
+          && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if isCommunityAdmin(communityId) || isSuperAdmin();
       }
 
       match /waitlist/{waitlistId} {

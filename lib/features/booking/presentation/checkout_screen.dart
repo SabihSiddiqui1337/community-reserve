@@ -89,7 +89,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
-        showSnack(context, e.message ?? 'Failed');
+        showError(context, e.message ?? 'Could not complete the reservation.');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -114,10 +114,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         if (amenity == null) {
           return const Scaffold(body: Center(child: Text('Not found')));
         }
-        final hours =
-            widget.end.difference(widget.start).inMinutes / 60.0;
-        final subtotal = (amenity.pricing.amountCents * hours).round();
-        final tax = (subtotal * _taxRate).round();
+        // Bill only for usable time: the window [billedStart, end] where
+        // billedStart = max(slotStart, now). A slot booked after it began is
+        // charged only for the remaining minutes. The server recomputes this
+        // authoritatively at creation.
+        final now = DateTime.now();
+        final billedStart = widget.start.isBefore(now) ? now : widget.start;
+        final billedMinutes =
+            widget.end.difference(billedStart).inMinutes.clamp(0, 1 << 31);
+        final alreadyStarted = widget.start.isBefore(now) && billedMinutes > 0;
+        final subtotal =
+            (amenity.pricing.amountCents * billedMinutes / 60.0).round();
+        final taxEnabled =
+            ref.watch(activeCommunityProvider).settings.taxEnabled;
+        final tax = taxEnabled ? (subtotal * _taxRate).round() : 0;
         final total = subtotal + tax;
         final capacity = amenity.capacity;
 
@@ -182,12 +192,22 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               ],
               const Divider(),
               _Line(label: 'Subtotal', value: Money.format(subtotal)),
+              if (alreadyStarted)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'Charged for the remaining $billedMinutes min.',
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                ),
               const Divider(),
               const SizedBox(height: 12),
               const _Rules(),
               const SizedBox(height: 12),
               const Divider(),
-              _Line(label: 'Tax (8.25%)', value: Money.format(tax)),
+              if (taxEnabled)
+                _Line(label: 'Tax (8.25%)', value: Money.format(tax)),
               const SizedBox(height: 100),
             ],
           ),
@@ -257,10 +277,12 @@ class _CourtSelector extends StatelessWidget {
                   value: c,
                   enabled: !bookedCourts.contains(c),
                   child: Text(
-                    bookedCourts.contains(c) ? 'Court $c (booked)' : 'Court $c',
+                    bookedCourts.contains(c) ? 'Court $c · Booked' : 'Court $c',
                     style: bookedCourts.contains(c)
-                        ? TextStyle(color: theme.colorScheme.outline)
-                        : null,
+                        ? TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontStyle: FontStyle.italic)
+                        : const TextStyle(color: Colors.white),
                   ),
                 ),
             ],

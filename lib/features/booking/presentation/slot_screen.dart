@@ -80,11 +80,9 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
     return d.year == now.year && d.month == now.month && d.day == now.day;
   }
 
-  static const _maxHours = 2; // residents can book up to 2 consecutive hours
-
-  /// Contiguous selection: extend at either end (up to [_maxHours]), shrink from
+  /// Contiguous selection: extend at either end (up to [maxHours]), shrink from
   /// an end, else reset.
-  void _toggle(int index, int lastIndex) {
+  void _toggle(int index, int lastIndex, int maxHours) {
     setState(() {
       if (_selected.isEmpty) {
         _selected.add(index);
@@ -93,8 +91,8 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
       final min = _selected.reduce((a, b) => a < b ? a : b);
       final max = _selected.reduce((a, b) => a > b ? a : b);
       if (index == max + 1 || index == min - 1) {
-        if (_selected.length >= _maxHours) {
-          // At the 2-hour cap — ignore further extension.
+        if (_selected.length >= maxHours) {
+          // At the hours cap — ignore further extension.
           _capHit = true;
           return;
         }
@@ -107,7 +105,7 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
         _selected.clear();
       } else {
         // A non-adjacent ("skipped") slot can't extend a consecutive block.
-        if (_selected.length >= _maxHours) {
+        if (_selected.length >= maxHours) {
           // Don't wipe out a full 2-hour block on a stray tap — keep it and
           // explain instead.
           _blocked = true;
@@ -128,6 +126,7 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
     final community = ref.watch(activeCommunityProvider);
     final advanceDays = community.settings.advanceBookingDays;
     final sportName = amenity.value?.name;
+    final isEvent = amenity.value?.type == 'hall';
 
     return Scaffold(
       appBar: AppBar(
@@ -139,7 +138,8 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
         title: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Book a Court', style: TextStyle(fontSize: 13)),
+            Text(isEvent ? 'Reserve' : 'Book a Court',
+                style: const TextStyle(fontSize: 13)),
             if (sportName != null)
               Text(sportName,
                   style: const TextStyle(
@@ -194,7 +194,10 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
                         size: 14,
                         color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 6),
-                    Text('Select up to 2 consecutive hours',
+                    Text(
+                        isEvent
+                            ? 'Select the consecutive hours you need'
+                            : 'Select up to 2 consecutive hours',
                         style: TextStyle(
                             fontSize: 12,
                             color:
@@ -235,7 +238,11 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
                                   onNotify: () => _notify(slots[i]),
                                   onTap: () {
                                     final wasEmpty = _selected.isEmpty;
-                                    _toggle(i, slots.length - 1);
+                                    // Events: any number of consecutive hours.
+                                    // Courts: capped at 2.
+                                    final maxHours =
+                                        isEvent ? slots.length : 2;
+                                    _toggle(i, slots.length - 1, maxHours);
                                     if (_capHit) {
                                       _capHit = false;
                                       _showLimitDialog(
@@ -264,7 +271,8 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
           : _CheckoutBar(
               hours: _selected.length,
               priceCents: _priceForSelection(),
-              onCheckout: () => _goCheckout(),
+              isEvent: isEvent,
+              onCheckout: () => _goReserve(isEvent),
             ),
     );
   }
@@ -305,7 +313,7 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
       }
     } catch (e) {
       if (mounted) {
-        showSnack(context, "Couldn't set up the notification.");
+        showError(context, "Couldn't set up the notification.");
       }
     }
   }
@@ -315,40 +323,11 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
     return (a?.pricing.amountCents ?? 0) * _selected.length;
   }
 
-  void _goCheckout() {
+  void _goReserve(bool isEvent) {
     final a = ref.read(amenityProvider(widget.amenityId)).value;
     if (a == null) return;
 
-    // Gate on the active-reservation limit here (clear dialog), rather than
-    // letting the server reject it with a toast after Reserve.
-    final myRes = ref.read(myReservationsProvider).value ?? const [];
-    final activeCount = myRes.where((r) => r.isUpcoming).length;
-    final maxActive = ref
-        .read(activeCommunityProvider)
-        .settings
-        .maxActiveReservationsPerUser;
-    if (activeCount >= maxActive) {
-      showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          icon: Icon(Icons.event_busy,
-              color: Theme.of(dialogContext).colorScheme.error),
-          title: const Text('Reservation limit reached'),
-          content: Text(
-            'You already have $maxActive active reservation'
-            '${maxActive == 1 ? '' : 's'}. Cancel one in My Bookings to book '
-            'another.',
-          ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Got it'),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
+    // Resolve the picked time range from the current selection.
     var slots = computeDaySlots(
         a,
         _day,
@@ -368,11 +347,70 @@ class _SlotScreenState extends ConsumerState<SlotScreen> {
     if (picked.isEmpty) return;
     final start = picked.first.start;
     final end = picked.last.end;
+
+    // Events go to a request form sent to the organizer (no instant payment).
+    if (isEvent) {
+      context.go(Routes.eventRequestTo(
+        a.id,
+        start: start.toUtc().toIso8601String(),
+        end: end.toUtc().toIso8601String(),
+      ));
+      return;
+    }
+
+    // Courts: gate on the active-reservation limit, then go to checkout.
+    final myRes = ref.read(myReservationsProvider).value ?? const [];
+    final activeCount = myRes.where((r) => r.isUpcoming).length;
+    final maxActive = ref
+        .read(activeCommunityProvider)
+        .settings
+        .maxActiveReservationsPerUser;
+    if (activeCount >= maxActive) {
+      showError(
+        context,
+        'You already have $maxActive active reservation'
+        '${maxActive == 1 ? '' : 's'}. Cancel one in My Bookings to book another.',
+      );
+      return;
+    }
+
+    // Weekly-hours cap — checked HERE (before checkout) so the user isn't sent
+    // all the way to the end to be told. Shown as a red error at the bottom.
+    final maxWeekly =
+        ref.read(activeCommunityProvider).settings.maxBookingHoursPerWeek;
+    final weekStart = _weekStart(start);
+    final weekEnd = weekStart.add(const Duration(days: 7));
+    final bookedThisWeek = myRes
+        .where((r) =>
+            r.isUpcoming &&
+            r.startTime != null &&
+            !r.startTime!.isBefore(weekStart) &&
+            r.startTime!.isBefore(weekEnd))
+        .fold<int>(
+            0,
+            (s, r) => s +
+                ((r.endTime != null && r.startTime != null)
+                    ? r.endTime!.difference(r.startTime!).inMinutes ~/ 60
+                    : 0));
+    if (bookedThisWeek + _selected.length > maxWeekly) {
+      final left = (maxWeekly - bookedThisWeek).clamp(0, maxWeekly);
+      showError(context,
+          'That exceeds the weekly limit of $maxWeekly hours — you have $left left this week.');
+      return;
+    }
+
     context.go(Routes.bookCheckoutTo(
       a.id,
       start: start.toUtc().toIso8601String(),
       end: end.toUtc().toIso8601String(),
     ));
+  }
+
+  /// Sunday-start week boundary (midnight) for the given date.
+  DateTime _weekStart(DateTime d) {
+    final daysFromSunday = d.weekday % 7; // Sun=0, Mon=1, … Sat=6
+    return DateTime(d.year, d.month, d.day)
+        .subtract(Duration(days: daysFromSunday));
   }
 }
 
@@ -582,14 +620,17 @@ class _CheckoutBar extends StatelessWidget {
   const _CheckoutBar(
       {required this.hours,
       required this.priceCents,
-      required this.onCheckout});
+      required this.onCheckout,
+      this.isEvent = false});
   final int hours;
   final int priceCents;
+  final bool isEvent;
   final VoidCallback onCheckout;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final hoursLabel = '$hours hour${hours == 1 ? '' : 's'}';
     return Material(
       color: scheme.inverseSurface,
       child: InkWell(
@@ -604,7 +645,7 @@ class _CheckoutBar extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Check out',
+                    Text(isEvent ? 'Fill out request form' : 'Check out',
                         style: TextStyle(
                             color: scheme.onInverseSurface,
                             fontSize: 16,
@@ -616,7 +657,9 @@ class _CheckoutBar extends StatelessWidget {
                 ),
                 const SizedBox(height: 1),
                 Text(
-                  '$hours hr · ${Money.format(priceCents)}',
+                  isEvent
+                      ? hoursLabel
+                      : '$hours hr · ${Money.format(priceCents)}',
                   style: TextStyle(
                       color: scheme.onInverseSurface.withValues(alpha: 0.80),
                       fontSize: 13),

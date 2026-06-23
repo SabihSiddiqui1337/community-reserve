@@ -56,7 +56,11 @@ class AppTheme {
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        centerTitle: false,
+        // No lime surface-tint overlay when content scrolls under the bar
+        // (that's what made the top look green).
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: true,
         foregroundColor: Colors.white,
       ),
       filledButtonTheme: FilledButtonThemeData(

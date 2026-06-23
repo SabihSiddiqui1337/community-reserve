@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router/routes.dart';
 import '../../../community/application/tenant_providers.dart';
 import '../../../community/domain/membership.dart';
+import '../../widgets/member_detail_dialog.dart';
 
 class MembersScreen extends ConsumerWidget {
   const MembersScreen({super.key});
@@ -35,16 +36,21 @@ class MembersScreen extends ConsumerWidget {
   }
 }
 
-class _MemberTile extends StatelessWidget {
+class _MemberTile extends ConsumerWidget {
   const _MemberTile({required this.membership});
   final Membership membership;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final m = membership;
     return Card(
       child: ListTile(
+        onTap: () => showMemberDetailDialog(
+          context,
+          ref,
+          membership: m,
+        ),
         leading: CircleAvatar(
           backgroundColor: m.isAdmin
               ? theme.colorScheme.tertiaryContainer

@@ -16,6 +16,7 @@ import '../../features/auth/presentation/sign_in_screen.dart';
 import '../../features/auth/presentation/sign_up_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/booking/presentation/checkout_screen.dart';
+import '../../features/booking/presentation/event_request_screen.dart';
 import '../../features/booking/presentation/slot_screen.dart';
 import '../../features/booking/presentation/sport_picker_screen.dart';
 import '../../features/community/presentation/join_community_screen.dart';
@@ -197,6 +198,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.bookCheckout,
         builder: (_, state) => CheckoutScreen(
+          amenityId: state.pathParameters['amenityId']!,
+          start: DateTime.parse(state.uri.queryParameters['start']!).toLocal(),
+          end: DateTime.parse(state.uri.queryParameters['end']!).toLocal(),
+        ),
+      ),
+      // Event reservation request — full screen form.
+      GoRoute(
+        path: Routes.eventRequest,
+        builder: (_, state) => EventRequestScreen(
           amenityId: state.pathParameters['amenityId']!,
           start: DateTime.parse(state.uri.queryParameters['start']!).toLocal(),
           end: DateTime.parse(state.uri.queryParameters['end']!).toLocal(),

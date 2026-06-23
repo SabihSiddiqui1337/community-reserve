@@ -66,6 +66,8 @@ interface AmenitySeed {
   capacity: number;
   isPaid?: boolean;
   amountCents?: number;
+  openHour?: number;
+  closeHour?: number; // 24 = midnight
 }
 
 interface MemberSeed {
@@ -112,6 +114,8 @@ async function seedCommunity(opts: {
       noShowThreshold: 3,
       noShowBanDays: 30,
       cancellationCutoffMinutes: 60,
+      cancellationAllowance: 2,
+      taxEnabled: true,
     },
     featureFlags: {
       paymentsEnabled: opts.paymentsEnabled ?? false,
@@ -145,8 +149,8 @@ async function seedCommunity(opts: {
       bufferMinutes: 0,
       capacity: a.capacity,
       requiresPin: true,
-      openHour: 6,
-      closeHour: 22,
+      openHour: a.openHour ?? 6,
+      closeHour: a.closeHour ?? 22,
       pricing: {
         isPaid: a.isPaid ?? false,
         amountCents: a.amountCents ?? 0,
@@ -189,7 +193,7 @@ async function main(): Promise<void> {
     theme: "dark",
     paymentsEnabled: true,
     amenities: [
-      { id: "hall", type: "hall", name: "Event Hall", description: "Private event space for gatherings and parties.", status: "active", slotMinutes: 60, capacity: 1, isPaid: true, amountCents: 500 },
+      { id: "hall", type: "hall", name: "Event Hall", description: "Private event space for gatherings and parties.", status: "active", slotMinutes: 60, capacity: 1, isPaid: true, amountCents: 500, closeHour: 24 },
       { id: "pickleball", type: "pickleballCourt", name: "Pickleball", description: "Two championship courts with lights.", status: "active", slotMinutes: 60, capacity: 2, isPaid: true, amountCents: 500 },
       { id: "basketball", type: "basketball", name: "Basketball", description: "Full indoor court.", status: "active", slotMinutes: 60, capacity: 1, isPaid: true, amountCents: 500 },
     ],
@@ -244,6 +248,7 @@ async function main(): Promise<void> {
     accessCredentialId: null, checkedInAt: null, createdAt: Timestamp.now(),
     cancelledAt: null, paymentId: "pay_demo_1",
     paymentMethod: "Discover •••• 9293",
+    subtotalCents: 500, taxCents: 41,
   });
   // Past history for Alex: a completed (paid) booking and a cancelled (refunded)
   // one, both with a paymentId so the receipt shows a real charge/refund.
@@ -254,6 +259,7 @@ async function main(): Promise<void> {
     accessCredentialId: null, checkedInAt: daysFromNow(-3, 18),
     createdAt: daysFromNow(-4, 12), cancelledAt: null, paymentId: "pay_hist_1",
     paymentMethod: "Visa •••• 9672",
+    subtotalCents: 500, taxCents: 41,
   });
   await res.doc("res-hist-2").set({
     amenityId: "basketball", userId: "resident1-uid",
@@ -261,8 +267,10 @@ async function main(): Promise<void> {
     status: "cancelled", pinHash: null, salt: null, qrToken: null,
     accessCredentialId: null, checkedInAt: null,
     createdAt: daysFromNow(-5, 9),
-    cancelledAt: daysFromNow(-2, 20), paymentId: "pay_hist_2",
+    // Cancelled before the 19:00 start → clean full refund (subtotal + tax).
+    cancelledAt: daysFromNow(-2, 18), paymentId: "pay_hist_2",
     paymentMethod: "Apple Pay",
+    subtotalCents: 500, taxCents: 41,
   });
 
   // Community Chat demo data for Maple Grove (demo-hoa).

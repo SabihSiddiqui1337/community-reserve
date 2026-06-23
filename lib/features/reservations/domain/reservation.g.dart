@@ -25,6 +25,8 @@ _Reservation _$ReservationFromJson(Map<String, dynamic> json) => _Reservation(
   cancelledAt: const TimestampConverter().fromJson(json['cancelledAt']),
   paymentId: json['paymentId'] as String?,
   paymentMethod: json['paymentMethod'] as String?,
+  subtotalCents: (json['subtotalCents'] as num?)?.toInt(),
+  taxCents: (json['taxCents'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$ReservationToJson(_Reservation instance) =>
@@ -45,6 +47,8 @@ Map<String, dynamic> _$ReservationToJson(_Reservation instance) =>
       'cancelledAt': const TimestampConverter().toJson(instance.cancelledAt),
       'paymentId': instance.paymentId,
       'paymentMethod': instance.paymentMethod,
+      'subtotalCents': instance.subtotalCents,
+      'taxCents': instance.taxCents,
     };
 
 const _$ReservationStatusEnumMap = {

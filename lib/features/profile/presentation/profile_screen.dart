@@ -32,11 +32,14 @@ class ProfileScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+      body: Column(
         children: [
-          Center(
+          Expanded(
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              children: [
+                Center(
             child: Column(
               children: [
                 CircleAvatar(
@@ -91,11 +94,16 @@ class ProfileScreen extends ConsumerWidget {
               onTap: () => context.push(Routes.account),
             ),
           ),
-          const SizedBox(height: 28),
-          OutlinedButton.icon(
-            onPressed: () => _confirmSignOut(context, ref),
-            icon: const Icon(Icons.logout),
-            label: const Text('Sign out'),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            child: FilledButton.icon(
+              onPressed: () => _confirmSignOut(context, ref),
+              icon: const Icon(Icons.logout),
+              label: const Text('Sign out'),
+            ),
           ),
         ],
       ),

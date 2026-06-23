@@ -37,6 +37,12 @@ class Routes {
           {required String start, required String end}) =>
       '/checkout/$amenityId?start=${Uri.encodeComponent(start)}&end=${Uri.encodeComponent(end)}';
 
+  // Event reservation request (full-screen form → sent to the organizer).
+  static const eventRequest = '/event-request/:amenityId';
+  static String eventRequestTo(String amenityId,
+          {required String start, required String end}) =>
+      '/event-request/$amenityId?start=${Uri.encodeComponent(start)}&end=${Uri.encodeComponent(end)}';
+
   // Admin (within the Admin branch)
   static const admin = '/admin';
   static const adminApprovals = '/admin/approvals';

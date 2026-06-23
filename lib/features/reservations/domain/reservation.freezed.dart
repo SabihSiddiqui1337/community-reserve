@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Reservation {
 
- String get id; String get amenityId; String get userId;@TimestampConverter() DateTime? get startTime;@TimestampConverter() DateTime? get endTime; ReservationStatus get status; int? get court; String? get pinHash; String? get salt; String? get qrToken; String? get accessCredentialId;@TimestampConverter() DateTime? get checkedInAt;@TimestampConverter() DateTime? get createdAt;@TimestampConverter() DateTime? get cancelledAt; String? get paymentId; String? get paymentMethod;
+ String get id; String get amenityId; String get userId;@TimestampConverter() DateTime? get startTime;@TimestampConverter() DateTime? get endTime; ReservationStatus get status; int? get court; String? get pinHash; String? get salt; String? get qrToken; String? get accessCredentialId;@TimestampConverter() DateTime? get checkedInAt;@TimestampConverter() DateTime? get createdAt;@TimestampConverter() DateTime? get cancelledAt; String? get paymentId; String? get paymentMethod; int? get subtotalCents; int? get taxCents;
 /// Create a copy of Reservation
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ReservationCopyWith<Reservation> get copyWith => _$ReservationCopyWithImpl<Rese
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Reservation&&(identical(other.id, id) || other.id == id)&&(identical(other.amenityId, amenityId) || other.amenityId == amenityId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.startTime, startTime) || other.startTime == startTime)&&(identical(other.endTime, endTime) || other.endTime == endTime)&&(identical(other.status, status) || other.status == status)&&(identical(other.court, court) || other.court == court)&&(identical(other.pinHash, pinHash) || other.pinHash == pinHash)&&(identical(other.salt, salt) || other.salt == salt)&&(identical(other.qrToken, qrToken) || other.qrToken == qrToken)&&(identical(other.accessCredentialId, accessCredentialId) || other.accessCredentialId == accessCredentialId)&&(identical(other.checkedInAt, checkedInAt) || other.checkedInAt == checkedInAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.cancelledAt, cancelledAt) || other.cancelledAt == cancelledAt)&&(identical(other.paymentId, paymentId) || other.paymentId == paymentId)&&(identical(other.paymentMethod, paymentMethod) || other.paymentMethod == paymentMethod));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Reservation&&(identical(other.id, id) || other.id == id)&&(identical(other.amenityId, amenityId) || other.amenityId == amenityId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.startTime, startTime) || other.startTime == startTime)&&(identical(other.endTime, endTime) || other.endTime == endTime)&&(identical(other.status, status) || other.status == status)&&(identical(other.court, court) || other.court == court)&&(identical(other.pinHash, pinHash) || other.pinHash == pinHash)&&(identical(other.salt, salt) || other.salt == salt)&&(identical(other.qrToken, qrToken) || other.qrToken == qrToken)&&(identical(other.accessCredentialId, accessCredentialId) || other.accessCredentialId == accessCredentialId)&&(identical(other.checkedInAt, checkedInAt) || other.checkedInAt == checkedInAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.cancelledAt, cancelledAt) || other.cancelledAt == cancelledAt)&&(identical(other.paymentId, paymentId) || other.paymentId == paymentId)&&(identical(other.paymentMethod, paymentMethod) || other.paymentMethod == paymentMethod)&&(identical(other.subtotalCents, subtotalCents) || other.subtotalCents == subtotalCents)&&(identical(other.taxCents, taxCents) || other.taxCents == taxCents));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,amenityId,userId,startTime,endTime,status,court,pinHash,salt,qrToken,accessCredentialId,checkedInAt,createdAt,cancelledAt,paymentId,paymentMethod);
+int get hashCode => Object.hash(runtimeType,id,amenityId,userId,startTime,endTime,status,court,pinHash,salt,qrToken,accessCredentialId,checkedInAt,createdAt,cancelledAt,paymentId,paymentMethod,subtotalCents,taxCents);
 
 @override
 String toString() {
-  return 'Reservation(id: $id, amenityId: $amenityId, userId: $userId, startTime: $startTime, endTime: $endTime, status: $status, court: $court, pinHash: $pinHash, salt: $salt, qrToken: $qrToken, accessCredentialId: $accessCredentialId, checkedInAt: $checkedInAt, createdAt: $createdAt, cancelledAt: $cancelledAt, paymentId: $paymentId, paymentMethod: $paymentMethod)';
+  return 'Reservation(id: $id, amenityId: $amenityId, userId: $userId, startTime: $startTime, endTime: $endTime, status: $status, court: $court, pinHash: $pinHash, salt: $salt, qrToken: $qrToken, accessCredentialId: $accessCredentialId, checkedInAt: $checkedInAt, createdAt: $createdAt, cancelledAt: $cancelledAt, paymentId: $paymentId, paymentMethod: $paymentMethod, subtotalCents: $subtotalCents, taxCents: $taxCents)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ReservationCopyWith<$Res>  {
   factory $ReservationCopyWith(Reservation value, $Res Function(Reservation) _then) = _$ReservationCopyWithImpl;
 @useResult
 $Res call({
- String id, String amenityId, String userId,@TimestampConverter() DateTime? startTime,@TimestampConverter() DateTime? endTime, ReservationStatus status, int? court, String? pinHash, String? salt, String? qrToken, String? accessCredentialId,@TimestampConverter() DateTime? checkedInAt,@TimestampConverter() DateTime? createdAt,@TimestampConverter() DateTime? cancelledAt, String? paymentId, String? paymentMethod
+ String id, String amenityId, String userId,@TimestampConverter() DateTime? startTime,@TimestampConverter() DateTime? endTime, ReservationStatus status, int? court, String? pinHash, String? salt, String? qrToken, String? accessCredentialId,@TimestampConverter() DateTime? checkedInAt,@TimestampConverter() DateTime? createdAt,@TimestampConverter() DateTime? cancelledAt, String? paymentId, String? paymentMethod, int? subtotalCents, int? taxCents
 });
 
 
@@ -65,7 +65,7 @@ class _$ReservationCopyWithImpl<$Res>
 
 /// Create a copy of Reservation
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? amenityId = null,Object? userId = null,Object? startTime = freezed,Object? endTime = freezed,Object? status = null,Object? court = freezed,Object? pinHash = freezed,Object? salt = freezed,Object? qrToken = freezed,Object? accessCredentialId = freezed,Object? checkedInAt = freezed,Object? createdAt = freezed,Object? cancelledAt = freezed,Object? paymentId = freezed,Object? paymentMethod = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? amenityId = null,Object? userId = null,Object? startTime = freezed,Object? endTime = freezed,Object? status = null,Object? court = freezed,Object? pinHash = freezed,Object? salt = freezed,Object? qrToken = freezed,Object? accessCredentialId = freezed,Object? checkedInAt = freezed,Object? createdAt = freezed,Object? cancelledAt = freezed,Object? paymentId = freezed,Object? paymentMethod = freezed,Object? subtotalCents = freezed,Object? taxCents = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,amenityId: null == amenityId ? _self.amenityId : amenityId // ignore: cast_nullable_to_non_nullable
@@ -83,7 +83,9 @@ as DateTime?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ig
 as DateTime?,cancelledAt: freezed == cancelledAt ? _self.cancelledAt : cancelledAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,paymentId: freezed == paymentId ? _self.paymentId : paymentId // ignore: cast_nullable_to_non_nullable
 as String?,paymentMethod: freezed == paymentMethod ? _self.paymentMethod : paymentMethod // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,subtotalCents: freezed == subtotalCents ? _self.subtotalCents : subtotalCents // ignore: cast_nullable_to_non_nullable
+as int?,taxCents: freezed == taxCents ? _self.taxCents : taxCents // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
@@ -168,10 +170,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String amenityId,  String userId, @TimestampConverter()  DateTime? startTime, @TimestampConverter()  DateTime? endTime,  ReservationStatus status,  int? court,  String? pinHash,  String? salt,  String? qrToken,  String? accessCredentialId, @TimestampConverter()  DateTime? checkedInAt, @TimestampConverter()  DateTime? createdAt, @TimestampConverter()  DateTime? cancelledAt,  String? paymentId,  String? paymentMethod)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String amenityId,  String userId, @TimestampConverter()  DateTime? startTime, @TimestampConverter()  DateTime? endTime,  ReservationStatus status,  int? court,  String? pinHash,  String? salt,  String? qrToken,  String? accessCredentialId, @TimestampConverter()  DateTime? checkedInAt, @TimestampConverter()  DateTime? createdAt, @TimestampConverter()  DateTime? cancelledAt,  String? paymentId,  String? paymentMethod,  int? subtotalCents,  int? taxCents)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Reservation() when $default != null:
-return $default(_that.id,_that.amenityId,_that.userId,_that.startTime,_that.endTime,_that.status,_that.court,_that.pinHash,_that.salt,_that.qrToken,_that.accessCredentialId,_that.checkedInAt,_that.createdAt,_that.cancelledAt,_that.paymentId,_that.paymentMethod);case _:
+return $default(_that.id,_that.amenityId,_that.userId,_that.startTime,_that.endTime,_that.status,_that.court,_that.pinHash,_that.salt,_that.qrToken,_that.accessCredentialId,_that.checkedInAt,_that.createdAt,_that.cancelledAt,_that.paymentId,_that.paymentMethod,_that.subtotalCents,_that.taxCents);case _:
   return orElse();
 
 }
@@ -189,10 +191,10 @@ return $default(_that.id,_that.amenityId,_that.userId,_that.startTime,_that.endT
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String amenityId,  String userId, @TimestampConverter()  DateTime? startTime, @TimestampConverter()  DateTime? endTime,  ReservationStatus status,  int? court,  String? pinHash,  String? salt,  String? qrToken,  String? accessCredentialId, @TimestampConverter()  DateTime? checkedInAt, @TimestampConverter()  DateTime? createdAt, @TimestampConverter()  DateTime? cancelledAt,  String? paymentId,  String? paymentMethod)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String amenityId,  String userId, @TimestampConverter()  DateTime? startTime, @TimestampConverter()  DateTime? endTime,  ReservationStatus status,  int? court,  String? pinHash,  String? salt,  String? qrToken,  String? accessCredentialId, @TimestampConverter()  DateTime? checkedInAt, @TimestampConverter()  DateTime? createdAt, @TimestampConverter()  DateTime? cancelledAt,  String? paymentId,  String? paymentMethod,  int? subtotalCents,  int? taxCents)  $default,) {final _that = this;
 switch (_that) {
 case _Reservation():
-return $default(_that.id,_that.amenityId,_that.userId,_that.startTime,_that.endTime,_that.status,_that.court,_that.pinHash,_that.salt,_that.qrToken,_that.accessCredentialId,_that.checkedInAt,_that.createdAt,_that.cancelledAt,_that.paymentId,_that.paymentMethod);case _:
+return $default(_that.id,_that.amenityId,_that.userId,_that.startTime,_that.endTime,_that.status,_that.court,_that.pinHash,_that.salt,_that.qrToken,_that.accessCredentialId,_that.checkedInAt,_that.createdAt,_that.cancelledAt,_that.paymentId,_that.paymentMethod,_that.subtotalCents,_that.taxCents);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -209,10 +211,10 @@ return $default(_that.id,_that.amenityId,_that.userId,_that.startTime,_that.endT
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String amenityId,  String userId, @TimestampConverter()  DateTime? startTime, @TimestampConverter()  DateTime? endTime,  ReservationStatus status,  int? court,  String? pinHash,  String? salt,  String? qrToken,  String? accessCredentialId, @TimestampConverter()  DateTime? checkedInAt, @TimestampConverter()  DateTime? createdAt, @TimestampConverter()  DateTime? cancelledAt,  String? paymentId,  String? paymentMethod)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String amenityId,  String userId, @TimestampConverter()  DateTime? startTime, @TimestampConverter()  DateTime? endTime,  ReservationStatus status,  int? court,  String? pinHash,  String? salt,  String? qrToken,  String? accessCredentialId, @TimestampConverter()  DateTime? checkedInAt, @TimestampConverter()  DateTime? createdAt, @TimestampConverter()  DateTime? cancelledAt,  String? paymentId,  String? paymentMethod,  int? subtotalCents,  int? taxCents)?  $default,) {final _that = this;
 switch (_that) {
 case _Reservation() when $default != null:
-return $default(_that.id,_that.amenityId,_that.userId,_that.startTime,_that.endTime,_that.status,_that.court,_that.pinHash,_that.salt,_that.qrToken,_that.accessCredentialId,_that.checkedInAt,_that.createdAt,_that.cancelledAt,_that.paymentId,_that.paymentMethod);case _:
+return $default(_that.id,_that.amenityId,_that.userId,_that.startTime,_that.endTime,_that.status,_that.court,_that.pinHash,_that.salt,_that.qrToken,_that.accessCredentialId,_that.checkedInAt,_that.createdAt,_that.cancelledAt,_that.paymentId,_that.paymentMethod,_that.subtotalCents,_that.taxCents);case _:
   return null;
 
 }
@@ -224,7 +226,7 @@ return $default(_that.id,_that.amenityId,_that.userId,_that.startTime,_that.endT
 @JsonSerializable()
 
 class _Reservation implements Reservation {
-  const _Reservation({required this.id, required this.amenityId, required this.userId, @TimestampConverter() this.startTime, @TimestampConverter() this.endTime, this.status = ReservationStatus.booked, this.court, this.pinHash, this.salt, this.qrToken, this.accessCredentialId, @TimestampConverter() this.checkedInAt, @TimestampConverter() this.createdAt, @TimestampConverter() this.cancelledAt, this.paymentId, this.paymentMethod});
+  const _Reservation({required this.id, required this.amenityId, required this.userId, @TimestampConverter() this.startTime, @TimestampConverter() this.endTime, this.status = ReservationStatus.booked, this.court, this.pinHash, this.salt, this.qrToken, this.accessCredentialId, @TimestampConverter() this.checkedInAt, @TimestampConverter() this.createdAt, @TimestampConverter() this.cancelledAt, this.paymentId, this.paymentMethod, this.subtotalCents, this.taxCents});
   factory _Reservation.fromJson(Map<String, dynamic> json) => _$ReservationFromJson(json);
 
 @override final  String id;
@@ -243,6 +245,8 @@ class _Reservation implements Reservation {
 @override@TimestampConverter() final  DateTime? cancelledAt;
 @override final  String? paymentId;
 @override final  String? paymentMethod;
+@override final  int? subtotalCents;
+@override final  int? taxCents;
 
 /// Create a copy of Reservation
 /// with the given fields replaced by the non-null parameter values.
@@ -257,16 +261,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Reservation&&(identical(other.id, id) || other.id == id)&&(identical(other.amenityId, amenityId) || other.amenityId == amenityId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.startTime, startTime) || other.startTime == startTime)&&(identical(other.endTime, endTime) || other.endTime == endTime)&&(identical(other.status, status) || other.status == status)&&(identical(other.court, court) || other.court == court)&&(identical(other.pinHash, pinHash) || other.pinHash == pinHash)&&(identical(other.salt, salt) || other.salt == salt)&&(identical(other.qrToken, qrToken) || other.qrToken == qrToken)&&(identical(other.accessCredentialId, accessCredentialId) || other.accessCredentialId == accessCredentialId)&&(identical(other.checkedInAt, checkedInAt) || other.checkedInAt == checkedInAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.cancelledAt, cancelledAt) || other.cancelledAt == cancelledAt)&&(identical(other.paymentId, paymentId) || other.paymentId == paymentId)&&(identical(other.paymentMethod, paymentMethod) || other.paymentMethod == paymentMethod));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Reservation&&(identical(other.id, id) || other.id == id)&&(identical(other.amenityId, amenityId) || other.amenityId == amenityId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.startTime, startTime) || other.startTime == startTime)&&(identical(other.endTime, endTime) || other.endTime == endTime)&&(identical(other.status, status) || other.status == status)&&(identical(other.court, court) || other.court == court)&&(identical(other.pinHash, pinHash) || other.pinHash == pinHash)&&(identical(other.salt, salt) || other.salt == salt)&&(identical(other.qrToken, qrToken) || other.qrToken == qrToken)&&(identical(other.accessCredentialId, accessCredentialId) || other.accessCredentialId == accessCredentialId)&&(identical(other.checkedInAt, checkedInAt) || other.checkedInAt == checkedInAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.cancelledAt, cancelledAt) || other.cancelledAt == cancelledAt)&&(identical(other.paymentId, paymentId) || other.paymentId == paymentId)&&(identical(other.paymentMethod, paymentMethod) || other.paymentMethod == paymentMethod)&&(identical(other.subtotalCents, subtotalCents) || other.subtotalCents == subtotalCents)&&(identical(other.taxCents, taxCents) || other.taxCents == taxCents));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,amenityId,userId,startTime,endTime,status,court,pinHash,salt,qrToken,accessCredentialId,checkedInAt,createdAt,cancelledAt,paymentId,paymentMethod);
+int get hashCode => Object.hash(runtimeType,id,amenityId,userId,startTime,endTime,status,court,pinHash,salt,qrToken,accessCredentialId,checkedInAt,createdAt,cancelledAt,paymentId,paymentMethod,subtotalCents,taxCents);
 
 @override
 String toString() {
-  return 'Reservation(id: $id, amenityId: $amenityId, userId: $userId, startTime: $startTime, endTime: $endTime, status: $status, court: $court, pinHash: $pinHash, salt: $salt, qrToken: $qrToken, accessCredentialId: $accessCredentialId, checkedInAt: $checkedInAt, createdAt: $createdAt, cancelledAt: $cancelledAt, paymentId: $paymentId, paymentMethod: $paymentMethod)';
+  return 'Reservation(id: $id, amenityId: $amenityId, userId: $userId, startTime: $startTime, endTime: $endTime, status: $status, court: $court, pinHash: $pinHash, salt: $salt, qrToken: $qrToken, accessCredentialId: $accessCredentialId, checkedInAt: $checkedInAt, createdAt: $createdAt, cancelledAt: $cancelledAt, paymentId: $paymentId, paymentMethod: $paymentMethod, subtotalCents: $subtotalCents, taxCents: $taxCents)';
 }
 
 
@@ -277,7 +281,7 @@ abstract mixin class _$ReservationCopyWith<$Res> implements $ReservationCopyWith
   factory _$ReservationCopyWith(_Reservation value, $Res Function(_Reservation) _then) = __$ReservationCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String amenityId, String userId,@TimestampConverter() DateTime? startTime,@TimestampConverter() DateTime? endTime, ReservationStatus status, int? court, String? pinHash, String? salt, String? qrToken, String? accessCredentialId,@TimestampConverter() DateTime? checkedInAt,@TimestampConverter() DateTime? createdAt,@TimestampConverter() DateTime? cancelledAt, String? paymentId, String? paymentMethod
+ String id, String amenityId, String userId,@TimestampConverter() DateTime? startTime,@TimestampConverter() DateTime? endTime, ReservationStatus status, int? court, String? pinHash, String? salt, String? qrToken, String? accessCredentialId,@TimestampConverter() DateTime? checkedInAt,@TimestampConverter() DateTime? createdAt,@TimestampConverter() DateTime? cancelledAt, String? paymentId, String? paymentMethod, int? subtotalCents, int? taxCents
 });
 
 
@@ -294,7 +298,7 @@ class __$ReservationCopyWithImpl<$Res>
 
 /// Create a copy of Reservation
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? amenityId = null,Object? userId = null,Object? startTime = freezed,Object? endTime = freezed,Object? status = null,Object? court = freezed,Object? pinHash = freezed,Object? salt = freezed,Object? qrToken = freezed,Object? accessCredentialId = freezed,Object? checkedInAt = freezed,Object? createdAt = freezed,Object? cancelledAt = freezed,Object? paymentId = freezed,Object? paymentMethod = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? amenityId = null,Object? userId = null,Object? startTime = freezed,Object? endTime = freezed,Object? status = null,Object? court = freezed,Object? pinHash = freezed,Object? salt = freezed,Object? qrToken = freezed,Object? accessCredentialId = freezed,Object? checkedInAt = freezed,Object? createdAt = freezed,Object? cancelledAt = freezed,Object? paymentId = freezed,Object? paymentMethod = freezed,Object? subtotalCents = freezed,Object? taxCents = freezed,}) {
   return _then(_Reservation(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,amenityId: null == amenityId ? _self.amenityId : amenityId // ignore: cast_nullable_to_non_nullable
@@ -312,7 +316,9 @@ as DateTime?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ig
 as DateTime?,cancelledAt: freezed == cancelledAt ? _self.cancelledAt : cancelledAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,paymentId: freezed == paymentId ? _self.paymentId : paymentId // ignore: cast_nullable_to_non_nullable
 as String?,paymentMethod: freezed == paymentMethod ? _self.paymentMethod : paymentMethod // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,subtotalCents: freezed == subtotalCents ? _self.subtotalCents : subtotalCents // ignore: cast_nullable_to_non_nullable
+as int?,taxCents: freezed == taxCents ? _self.taxCents : taxCents // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 

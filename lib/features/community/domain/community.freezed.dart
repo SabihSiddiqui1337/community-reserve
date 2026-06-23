@@ -290,7 +290,7 @@ as String,
 /// @nodoc
 mixin _$CommunitySettings {
 
- int get maxBookingHoursPerWeek; int get advanceBookingDays; int get maxActiveReservationsPerUser; int get checkInGraceMinutes; int get noShowThreshold; int get noShowBanDays; int get cancellationCutoffMinutes; int get cancellationAllowance;
+ int get maxBookingHoursPerWeek; int get advanceBookingDays; int get maxActiveReservationsPerUser; int get checkInGraceMinutes; int get noShowThreshold; int get noShowBanDays; int get cancellationCutoffMinutes; int get cancellationAllowance; bool get taxEnabled;
 /// Create a copy of CommunitySettings
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -303,16 +303,16 @@ $CommunitySettingsCopyWith<CommunitySettings> get copyWith => _$CommunitySetting
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CommunitySettings&&(identical(other.maxBookingHoursPerWeek, maxBookingHoursPerWeek) || other.maxBookingHoursPerWeek == maxBookingHoursPerWeek)&&(identical(other.advanceBookingDays, advanceBookingDays) || other.advanceBookingDays == advanceBookingDays)&&(identical(other.maxActiveReservationsPerUser, maxActiveReservationsPerUser) || other.maxActiveReservationsPerUser == maxActiveReservationsPerUser)&&(identical(other.checkInGraceMinutes, checkInGraceMinutes) || other.checkInGraceMinutes == checkInGraceMinutes)&&(identical(other.noShowThreshold, noShowThreshold) || other.noShowThreshold == noShowThreshold)&&(identical(other.noShowBanDays, noShowBanDays) || other.noShowBanDays == noShowBanDays)&&(identical(other.cancellationCutoffMinutes, cancellationCutoffMinutes) || other.cancellationCutoffMinutes == cancellationCutoffMinutes)&&(identical(other.cancellationAllowance, cancellationAllowance) || other.cancellationAllowance == cancellationAllowance));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CommunitySettings&&(identical(other.maxBookingHoursPerWeek, maxBookingHoursPerWeek) || other.maxBookingHoursPerWeek == maxBookingHoursPerWeek)&&(identical(other.advanceBookingDays, advanceBookingDays) || other.advanceBookingDays == advanceBookingDays)&&(identical(other.maxActiveReservationsPerUser, maxActiveReservationsPerUser) || other.maxActiveReservationsPerUser == maxActiveReservationsPerUser)&&(identical(other.checkInGraceMinutes, checkInGraceMinutes) || other.checkInGraceMinutes == checkInGraceMinutes)&&(identical(other.noShowThreshold, noShowThreshold) || other.noShowThreshold == noShowThreshold)&&(identical(other.noShowBanDays, noShowBanDays) || other.noShowBanDays == noShowBanDays)&&(identical(other.cancellationCutoffMinutes, cancellationCutoffMinutes) || other.cancellationCutoffMinutes == cancellationCutoffMinutes)&&(identical(other.cancellationAllowance, cancellationAllowance) || other.cancellationAllowance == cancellationAllowance)&&(identical(other.taxEnabled, taxEnabled) || other.taxEnabled == taxEnabled));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,maxBookingHoursPerWeek,advanceBookingDays,maxActiveReservationsPerUser,checkInGraceMinutes,noShowThreshold,noShowBanDays,cancellationCutoffMinutes,cancellationAllowance);
+int get hashCode => Object.hash(runtimeType,maxBookingHoursPerWeek,advanceBookingDays,maxActiveReservationsPerUser,checkInGraceMinutes,noShowThreshold,noShowBanDays,cancellationCutoffMinutes,cancellationAllowance,taxEnabled);
 
 @override
 String toString() {
-  return 'CommunitySettings(maxBookingHoursPerWeek: $maxBookingHoursPerWeek, advanceBookingDays: $advanceBookingDays, maxActiveReservationsPerUser: $maxActiveReservationsPerUser, checkInGraceMinutes: $checkInGraceMinutes, noShowThreshold: $noShowThreshold, noShowBanDays: $noShowBanDays, cancellationCutoffMinutes: $cancellationCutoffMinutes, cancellationAllowance: $cancellationAllowance)';
+  return 'CommunitySettings(maxBookingHoursPerWeek: $maxBookingHoursPerWeek, advanceBookingDays: $advanceBookingDays, maxActiveReservationsPerUser: $maxActiveReservationsPerUser, checkInGraceMinutes: $checkInGraceMinutes, noShowThreshold: $noShowThreshold, noShowBanDays: $noShowBanDays, cancellationCutoffMinutes: $cancellationCutoffMinutes, cancellationAllowance: $cancellationAllowance, taxEnabled: $taxEnabled)';
 }
 
 
@@ -323,7 +323,7 @@ abstract mixin class $CommunitySettingsCopyWith<$Res>  {
   factory $CommunitySettingsCopyWith(CommunitySettings value, $Res Function(CommunitySettings) _then) = _$CommunitySettingsCopyWithImpl;
 @useResult
 $Res call({
- int maxBookingHoursPerWeek, int advanceBookingDays, int maxActiveReservationsPerUser, int checkInGraceMinutes, int noShowThreshold, int noShowBanDays, int cancellationCutoffMinutes, int cancellationAllowance
+ int maxBookingHoursPerWeek, int advanceBookingDays, int maxActiveReservationsPerUser, int checkInGraceMinutes, int noShowThreshold, int noShowBanDays, int cancellationCutoffMinutes, int cancellationAllowance, bool taxEnabled
 });
 
 
@@ -340,7 +340,7 @@ class _$CommunitySettingsCopyWithImpl<$Res>
 
 /// Create a copy of CommunitySettings
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? maxBookingHoursPerWeek = null,Object? advanceBookingDays = null,Object? maxActiveReservationsPerUser = null,Object? checkInGraceMinutes = null,Object? noShowThreshold = null,Object? noShowBanDays = null,Object? cancellationCutoffMinutes = null,Object? cancellationAllowance = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? maxBookingHoursPerWeek = null,Object? advanceBookingDays = null,Object? maxActiveReservationsPerUser = null,Object? checkInGraceMinutes = null,Object? noShowThreshold = null,Object? noShowBanDays = null,Object? cancellationCutoffMinutes = null,Object? cancellationAllowance = null,Object? taxEnabled = null,}) {
   return _then(_self.copyWith(
 maxBookingHoursPerWeek: null == maxBookingHoursPerWeek ? _self.maxBookingHoursPerWeek : maxBookingHoursPerWeek // ignore: cast_nullable_to_non_nullable
 as int,advanceBookingDays: null == advanceBookingDays ? _self.advanceBookingDays : advanceBookingDays // ignore: cast_nullable_to_non_nullable
@@ -350,7 +350,8 @@ as int,noShowThreshold: null == noShowThreshold ? _self.noShowThreshold : noShow
 as int,noShowBanDays: null == noShowBanDays ? _self.noShowBanDays : noShowBanDays // ignore: cast_nullable_to_non_nullable
 as int,cancellationCutoffMinutes: null == cancellationCutoffMinutes ? _self.cancellationCutoffMinutes : cancellationCutoffMinutes // ignore: cast_nullable_to_non_nullable
 as int,cancellationAllowance: null == cancellationAllowance ? _self.cancellationAllowance : cancellationAllowance // ignore: cast_nullable_to_non_nullable
-as int,
+as int,taxEnabled: null == taxEnabled ? _self.taxEnabled : taxEnabled // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -435,10 +436,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int maxBookingHoursPerWeek,  int advanceBookingDays,  int maxActiveReservationsPerUser,  int checkInGraceMinutes,  int noShowThreshold,  int noShowBanDays,  int cancellationCutoffMinutes,  int cancellationAllowance)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int maxBookingHoursPerWeek,  int advanceBookingDays,  int maxActiveReservationsPerUser,  int checkInGraceMinutes,  int noShowThreshold,  int noShowBanDays,  int cancellationCutoffMinutes,  int cancellationAllowance,  bool taxEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CommunitySettings() when $default != null:
-return $default(_that.maxBookingHoursPerWeek,_that.advanceBookingDays,_that.maxActiveReservationsPerUser,_that.checkInGraceMinutes,_that.noShowThreshold,_that.noShowBanDays,_that.cancellationCutoffMinutes,_that.cancellationAllowance);case _:
+return $default(_that.maxBookingHoursPerWeek,_that.advanceBookingDays,_that.maxActiveReservationsPerUser,_that.checkInGraceMinutes,_that.noShowThreshold,_that.noShowBanDays,_that.cancellationCutoffMinutes,_that.cancellationAllowance,_that.taxEnabled);case _:
   return orElse();
 
 }
@@ -456,10 +457,10 @@ return $default(_that.maxBookingHoursPerWeek,_that.advanceBookingDays,_that.maxA
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int maxBookingHoursPerWeek,  int advanceBookingDays,  int maxActiveReservationsPerUser,  int checkInGraceMinutes,  int noShowThreshold,  int noShowBanDays,  int cancellationCutoffMinutes,  int cancellationAllowance)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int maxBookingHoursPerWeek,  int advanceBookingDays,  int maxActiveReservationsPerUser,  int checkInGraceMinutes,  int noShowThreshold,  int noShowBanDays,  int cancellationCutoffMinutes,  int cancellationAllowance,  bool taxEnabled)  $default,) {final _that = this;
 switch (_that) {
 case _CommunitySettings():
-return $default(_that.maxBookingHoursPerWeek,_that.advanceBookingDays,_that.maxActiveReservationsPerUser,_that.checkInGraceMinutes,_that.noShowThreshold,_that.noShowBanDays,_that.cancellationCutoffMinutes,_that.cancellationAllowance);case _:
+return $default(_that.maxBookingHoursPerWeek,_that.advanceBookingDays,_that.maxActiveReservationsPerUser,_that.checkInGraceMinutes,_that.noShowThreshold,_that.noShowBanDays,_that.cancellationCutoffMinutes,_that.cancellationAllowance,_that.taxEnabled);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -476,10 +477,10 @@ return $default(_that.maxBookingHoursPerWeek,_that.advanceBookingDays,_that.maxA
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int maxBookingHoursPerWeek,  int advanceBookingDays,  int maxActiveReservationsPerUser,  int checkInGraceMinutes,  int noShowThreshold,  int noShowBanDays,  int cancellationCutoffMinutes,  int cancellationAllowance)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int maxBookingHoursPerWeek,  int advanceBookingDays,  int maxActiveReservationsPerUser,  int checkInGraceMinutes,  int noShowThreshold,  int noShowBanDays,  int cancellationCutoffMinutes,  int cancellationAllowance,  bool taxEnabled)?  $default,) {final _that = this;
 switch (_that) {
 case _CommunitySettings() when $default != null:
-return $default(_that.maxBookingHoursPerWeek,_that.advanceBookingDays,_that.maxActiveReservationsPerUser,_that.checkInGraceMinutes,_that.noShowThreshold,_that.noShowBanDays,_that.cancellationCutoffMinutes,_that.cancellationAllowance);case _:
+return $default(_that.maxBookingHoursPerWeek,_that.advanceBookingDays,_that.maxActiveReservationsPerUser,_that.checkInGraceMinutes,_that.noShowThreshold,_that.noShowBanDays,_that.cancellationCutoffMinutes,_that.cancellationAllowance,_that.taxEnabled);case _:
   return null;
 
 }
@@ -491,7 +492,7 @@ return $default(_that.maxBookingHoursPerWeek,_that.advanceBookingDays,_that.maxA
 @JsonSerializable()
 
 class _CommunitySettings implements CommunitySettings {
-  const _CommunitySettings({this.maxBookingHoursPerWeek = 3, this.advanceBookingDays = 7, this.maxActiveReservationsPerUser = 2, this.checkInGraceMinutes = 15, this.noShowThreshold = 3, this.noShowBanDays = 30, this.cancellationCutoffMinutes = 60, this.cancellationAllowance = 2});
+  const _CommunitySettings({this.maxBookingHoursPerWeek = 3, this.advanceBookingDays = 7, this.maxActiveReservationsPerUser = 2, this.checkInGraceMinutes = 15, this.noShowThreshold = 3, this.noShowBanDays = 30, this.cancellationCutoffMinutes = 60, this.cancellationAllowance = 2, this.taxEnabled = true});
   factory _CommunitySettings.fromJson(Map<String, dynamic> json) => _$CommunitySettingsFromJson(json);
 
 @override@JsonKey() final  int maxBookingHoursPerWeek;
@@ -502,6 +503,7 @@ class _CommunitySettings implements CommunitySettings {
 @override@JsonKey() final  int noShowBanDays;
 @override@JsonKey() final  int cancellationCutoffMinutes;
 @override@JsonKey() final  int cancellationAllowance;
+@override@JsonKey() final  bool taxEnabled;
 
 /// Create a copy of CommunitySettings
 /// with the given fields replaced by the non-null parameter values.
@@ -516,16 +518,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CommunitySettings&&(identical(other.maxBookingHoursPerWeek, maxBookingHoursPerWeek) || other.maxBookingHoursPerWeek == maxBookingHoursPerWeek)&&(identical(other.advanceBookingDays, advanceBookingDays) || other.advanceBookingDays == advanceBookingDays)&&(identical(other.maxActiveReservationsPerUser, maxActiveReservationsPerUser) || other.maxActiveReservationsPerUser == maxActiveReservationsPerUser)&&(identical(other.checkInGraceMinutes, checkInGraceMinutes) || other.checkInGraceMinutes == checkInGraceMinutes)&&(identical(other.noShowThreshold, noShowThreshold) || other.noShowThreshold == noShowThreshold)&&(identical(other.noShowBanDays, noShowBanDays) || other.noShowBanDays == noShowBanDays)&&(identical(other.cancellationCutoffMinutes, cancellationCutoffMinutes) || other.cancellationCutoffMinutes == cancellationCutoffMinutes)&&(identical(other.cancellationAllowance, cancellationAllowance) || other.cancellationAllowance == cancellationAllowance));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CommunitySettings&&(identical(other.maxBookingHoursPerWeek, maxBookingHoursPerWeek) || other.maxBookingHoursPerWeek == maxBookingHoursPerWeek)&&(identical(other.advanceBookingDays, advanceBookingDays) || other.advanceBookingDays == advanceBookingDays)&&(identical(other.maxActiveReservationsPerUser, maxActiveReservationsPerUser) || other.maxActiveReservationsPerUser == maxActiveReservationsPerUser)&&(identical(other.checkInGraceMinutes, checkInGraceMinutes) || other.checkInGraceMinutes == checkInGraceMinutes)&&(identical(other.noShowThreshold, noShowThreshold) || other.noShowThreshold == noShowThreshold)&&(identical(other.noShowBanDays, noShowBanDays) || other.noShowBanDays == noShowBanDays)&&(identical(other.cancellationCutoffMinutes, cancellationCutoffMinutes) || other.cancellationCutoffMinutes == cancellationCutoffMinutes)&&(identical(other.cancellationAllowance, cancellationAllowance) || other.cancellationAllowance == cancellationAllowance)&&(identical(other.taxEnabled, taxEnabled) || other.taxEnabled == taxEnabled));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,maxBookingHoursPerWeek,advanceBookingDays,maxActiveReservationsPerUser,checkInGraceMinutes,noShowThreshold,noShowBanDays,cancellationCutoffMinutes,cancellationAllowance);
+int get hashCode => Object.hash(runtimeType,maxBookingHoursPerWeek,advanceBookingDays,maxActiveReservationsPerUser,checkInGraceMinutes,noShowThreshold,noShowBanDays,cancellationCutoffMinutes,cancellationAllowance,taxEnabled);
 
 @override
 String toString() {
-  return 'CommunitySettings(maxBookingHoursPerWeek: $maxBookingHoursPerWeek, advanceBookingDays: $advanceBookingDays, maxActiveReservationsPerUser: $maxActiveReservationsPerUser, checkInGraceMinutes: $checkInGraceMinutes, noShowThreshold: $noShowThreshold, noShowBanDays: $noShowBanDays, cancellationCutoffMinutes: $cancellationCutoffMinutes, cancellationAllowance: $cancellationAllowance)';
+  return 'CommunitySettings(maxBookingHoursPerWeek: $maxBookingHoursPerWeek, advanceBookingDays: $advanceBookingDays, maxActiveReservationsPerUser: $maxActiveReservationsPerUser, checkInGraceMinutes: $checkInGraceMinutes, noShowThreshold: $noShowThreshold, noShowBanDays: $noShowBanDays, cancellationCutoffMinutes: $cancellationCutoffMinutes, cancellationAllowance: $cancellationAllowance, taxEnabled: $taxEnabled)';
 }
 
 
@@ -536,7 +538,7 @@ abstract mixin class _$CommunitySettingsCopyWith<$Res> implements $CommunitySett
   factory _$CommunitySettingsCopyWith(_CommunitySettings value, $Res Function(_CommunitySettings) _then) = __$CommunitySettingsCopyWithImpl;
 @override @useResult
 $Res call({
- int maxBookingHoursPerWeek, int advanceBookingDays, int maxActiveReservationsPerUser, int checkInGraceMinutes, int noShowThreshold, int noShowBanDays, int cancellationCutoffMinutes, int cancellationAllowance
+ int maxBookingHoursPerWeek, int advanceBookingDays, int maxActiveReservationsPerUser, int checkInGraceMinutes, int noShowThreshold, int noShowBanDays, int cancellationCutoffMinutes, int cancellationAllowance, bool taxEnabled
 });
 
 
@@ -553,7 +555,7 @@ class __$CommunitySettingsCopyWithImpl<$Res>
 
 /// Create a copy of CommunitySettings
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? maxBookingHoursPerWeek = null,Object? advanceBookingDays = null,Object? maxActiveReservationsPerUser = null,Object? checkInGraceMinutes = null,Object? noShowThreshold = null,Object? noShowBanDays = null,Object? cancellationCutoffMinutes = null,Object? cancellationAllowance = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? maxBookingHoursPerWeek = null,Object? advanceBookingDays = null,Object? maxActiveReservationsPerUser = null,Object? checkInGraceMinutes = null,Object? noShowThreshold = null,Object? noShowBanDays = null,Object? cancellationCutoffMinutes = null,Object? cancellationAllowance = null,Object? taxEnabled = null,}) {
   return _then(_CommunitySettings(
 maxBookingHoursPerWeek: null == maxBookingHoursPerWeek ? _self.maxBookingHoursPerWeek : maxBookingHoursPerWeek // ignore: cast_nullable_to_non_nullable
 as int,advanceBookingDays: null == advanceBookingDays ? _self.advanceBookingDays : advanceBookingDays // ignore: cast_nullable_to_non_nullable
@@ -563,7 +565,8 @@ as int,noShowThreshold: null == noShowThreshold ? _self.noShowThreshold : noShow
 as int,noShowBanDays: null == noShowBanDays ? _self.noShowBanDays : noShowBanDays // ignore: cast_nullable_to_non_nullable
 as int,cancellationCutoffMinutes: null == cancellationCutoffMinutes ? _self.cancellationCutoffMinutes : cancellationCutoffMinutes // ignore: cast_nullable_to_non_nullable
 as int,cancellationAllowance: null == cancellationAllowance ? _self.cancellationAllowance : cancellationAllowance // ignore: cast_nullable_to_non_nullable
-as int,
+as int,taxEnabled: null == taxEnabled ? _self.taxEnabled : taxEnabled // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
