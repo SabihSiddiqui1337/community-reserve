@@ -342,7 +342,11 @@ class _WebFallback extends StatelessWidget {
               'Pay Rent, View Statements, and Submit Maintenance Requests '
               "in your Community's Resident Portal.",
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.65)),
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                color: Colors.white.withValues(alpha: 0.6),
+              ),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
