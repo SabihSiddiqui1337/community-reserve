@@ -52,7 +52,8 @@ service cloud.firestore {
     // list communities BEFORE the user has an account. Seeded/admin-written.
     match /communityDirectory/{communityId} {
       allow read: if true;
-      allow write: if false;
+      // Only the platform owner adds communities to the directory.
+      allow write: if isSuperAdmin();
     }
 
     // ---- Collection-group read of a user's OWN memberships ----
@@ -168,11 +169,11 @@ service cloud.firestore {
       // can post a message (as themselves). DMs are private to their
       // participants.
       match /channels/{channelId} {
-        allow read: if isMember(communityId);
+        allow read: if isMember(communityId) || isSuperAdmin();
         allow create, update, delete: if isCommunityAdmin(communityId);
 
         match /messages/{messageId} {
-          allow read: if isMember(communityId);
+          allow read: if isMember(communityId) || isSuperAdmin();
           allow create: if isMember(communityId)
             && request.resource.data.senderId == request.auth.uid;
           allow update, delete: if false;
@@ -181,9 +182,9 @@ service cloud.firestore {
 
       match /dms/{dmId} {
         // Only participants (and members creating a thread they're in) may
-        // read/write the thread doc.
-        allow read: if isMember(communityId)
-          && request.auth.uid in resource.data.participantIds;
+        // read/write the thread doc. The owner can read for oversight.
+        allow read: if isSuperAdmin() || (isMember(communityId)
+          && request.auth.uid in resource.data.participantIds);
         allow create: if isMember(communityId)
           && request.auth.uid in request.resource.data.participantIds;
         allow update: if isMember(communityId)

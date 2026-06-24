@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/chat/data/chat_providers.dart';
 import '../../features/chat/presentation/community_chat_sheet.dart';
-import '../../features/community/application/tenant_providers.dart';
 import '../../features/notifications/data/fcm_service.dart';
 import '../theme/app_theme.dart';
 
@@ -36,12 +35,10 @@ class MainShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final community = ref.watch(activeCommunityProvider);
-    final hasPortal = (community.residentPortalUrl ?? '').trim().isNotEmpty;
     ref.watch(fcmRegistrationProvider); // best-effort push registration
 
-    // Order: Events · Book · Bookings · [HOA] · More. HOA sits right before
-    // More, and only shows when a resident portal is configured.
+    // Order: Events · Book · Bookings · HOA · More. The HOA tab always shows;
+    // communities without a portal link see a "Coming Soon" state inside it.
     final tabs = <_Tab>[
       const _Tab(_Branch.events, Icons.campaign_outlined, Icons.campaign,
           'Events'),
@@ -49,9 +46,7 @@ class MainShell extends ConsumerWidget {
           'Book'),
       const _Tab(_Branch.bookings, Icons.confirmation_number_outlined,
           Icons.confirmation_number, 'Bookings'),
-      if (hasPortal)
-        const _Tab(_Branch.hoa, Icons.apartment_outlined, Icons.apartment,
-            'HOA'),
+      const _Tab(_Branch.hoa, Icons.apartment_outlined, Icons.apartment, 'HOA'),
       const _Tab(_Branch.profile, Icons.more_horiz, Icons.more_horiz, 'More'),
     ];
 

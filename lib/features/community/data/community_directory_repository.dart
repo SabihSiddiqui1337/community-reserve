@@ -24,6 +24,19 @@ class CommunityDirectoryRepository {
     return q.docs.map(_fromDoc).toList();
   }
 
+  /// Live stream of all communities (owner's "All Communities" screen).
+  Stream<List<CommunitySummary>> watchAll() => _col
+      .orderBy('name')
+      .snapshots()
+      .map((q) => q.docs.map(_fromDoc).toList());
+
+  /// Fetch a single directory entry by id (for the owner's edit form).
+  Future<CommunitySummary?> fetch(String id) async {
+    final d = await _col.doc(id).get();
+    if (!d.exists) return null;
+    return _fromDoc(d);
+  }
+
   /// Resolve a join code (case-insensitive) to a single community.
   Future<CommunitySummary?> lookupByCode(String code) async {
     final normalized = code.trim().toUpperCase();
@@ -53,4 +66,9 @@ class CommunityDirectoryRepository {
 final communityDirectoryRepositoryProvider =
     Provider<CommunityDirectoryRepository>(
   (ref) => CommunityDirectoryRepository(ref.watch(firestoreProvider)),
+);
+
+/// Live list of every community (for the owner's "All Communities" screen).
+final allCommunitiesProvider = StreamProvider<List<CommunitySummary>>(
+  (ref) => ref.watch(communityDirectoryRepositoryProvider).watchAll(),
 );

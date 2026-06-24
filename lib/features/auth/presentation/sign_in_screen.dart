@@ -288,6 +288,8 @@ class _DemoAccount {
 }
 
 const _demoAccounts = <_DemoAccount>[
+  _DemoAccount('Owner', 'owner@amenry.test', 'platform owner · all access',
+      Icons.workspace_premium_outlined, Color(0xFFC8FA4B)),
   _DemoAccount('Admin', 'admin@maplegrove.test', 'Maple Grove · admin view',
       Icons.shield_outlined, Color(0xFFC9A24A)),
   _DemoAccount('Resident', 'alex@maplegrove.test', 'Maple Grove · verified',

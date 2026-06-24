@@ -54,4 +54,10 @@ class Routes {
   static const adminBranding = '/admin/branding';
   static const adminMembers = '/admin/members';
   static const adminSettings = '/admin/settings';
+
+  // Owner (platform superAdmin) tools, nested in the Admin branch.
+  static const adminAddCommunity = '/admin/add-community';
+  static const adminAllCommunities = '/admin/communities';
+  static String adminCommunityDetailTo(String id) => '/admin/communities/$id';
+  static String adminEditCommunityTo(String id) => '/admin/communities/$id/edit';
 }

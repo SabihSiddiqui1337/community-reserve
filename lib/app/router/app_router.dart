@@ -6,6 +6,9 @@ import '../../features/admin/amenities_manager/presentation/amenities_manager_sc
 import '../../features/admin/approvals/presentation/approvals_screen.dart';
 import '../../features/admin/branding_editor/presentation/branding_editor_screen.dart';
 import '../../features/admin/members/presentation/members_screen.dart';
+import '../../features/admin/owner/presentation/add_community_screen.dart';
+import '../../features/admin/owner/presentation/all_communities_screen.dart';
+import '../../features/admin/owner/presentation/community_detail_screen.dart';
 import '../../features/admin/presentation/admin_dashboard_screen.dart';
 import '../../features/admin/reports/presentation/reports_screen.dart';
 import '../../features/admin/reservations_calendar/presentation/admin_reservations_screen.dart';
@@ -172,6 +175,26 @@ final routerProvider = Provider<GoRouter>((ref) {
                 GoRoute(
                     path: 'members',
                     builder: (_, _) => const MembersScreen()),
+                GoRoute(
+                    path: 'add-community',
+                    builder: (_, _) => const AddCommunityScreen()),
+                GoRoute(
+                    path: 'communities',
+                    builder: (_, _) => const AllCommunitiesScreen(),
+                    routes: [
+                      GoRoute(
+                        path: ':id',
+                        builder: (_, state) => CommunityDetailScreen(
+                            communityId: state.pathParameters['id']!),
+                        routes: [
+                          GoRoute(
+                            path: 'edit',
+                            builder: (_, state) => AddCommunityScreen(
+                                communityId: state.pathParameters['id']),
+                          ),
+                        ],
+                      ),
+                    ]),
               ],
             ),
           ]),

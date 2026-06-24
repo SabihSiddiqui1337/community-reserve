@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/data/auth_repository.dart';
+import '../../auth/data/user_repository.dart';
 import '../data/community_repository.dart';
 import '../data/membership_repository.dart';
 import '../domain/community.dart';
@@ -13,9 +14,32 @@ final userMembershipsProvider = StreamProvider<List<MembershipRecord>>((ref) {
   return ref.watch(membershipRepositoryProvider).watchUserMemberships(uid);
 });
 
-/// The active tenant id — derived from the user's first membership (MVP single
-/// community). Null when signed out or not yet joined.
+/// True for the platform owner (global superAdmin) — can add communities and
+/// switch into any of them.
+final isOwnerProvider = Provider<bool>((ref) {
+  final user = ref.watch(currentUserProvider).value;
+  return user?.globalRole == 'superAdmin';
+});
+
+/// The owner's currently-selected community to view (null = their own home
+/// community). Set from the "All Communities" screen; ignored for non-owners.
+class CommunityOverride extends Notifier<String?> {
+  @override
+  String? build() => null;
+  void select(String? id) => state = id;
+}
+
+final communityOverrideProvider =
+    NotifierProvider<CommunityOverride, String?>(CommunityOverride.new);
+
+/// The active tenant id. For the owner, an explicit override wins; otherwise the
+/// user's first membership (MVP single community). Null when signed out / not
+/// yet joined.
 final currentCommunityIdProvider = Provider<String?>((ref) {
+  if (ref.watch(isOwnerProvider)) {
+    final override = ref.watch(communityOverrideProvider);
+    if (override != null) return override;
+  }
   final list = ref.watch(userMembershipsProvider).value ?? const [];
   return list.isEmpty ? null : list.first.communityId;
 });
@@ -43,8 +67,10 @@ final activeCommunityProvider = Provider<Community>((ref) {
       );
 });
 
-/// True when the active membership has admin role.
+/// True when the active membership has admin role, OR the user is the platform
+/// owner (who has admin powers in every community).
 final isAdminProvider = Provider<bool>((ref) {
+  if (ref.watch(isOwnerProvider)) return true;
   final m = ref.watch(currentMembershipProvider);
   return m?.isAdmin ?? false;
 });

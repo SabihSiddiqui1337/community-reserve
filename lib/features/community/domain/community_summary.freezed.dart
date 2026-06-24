@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CommunitySummary {
 
- String get id; String get name; String get city; String? get logoUrl; String get joinCode; String get primaryColor;
+ String get id; String get name; String get street; String get city; String get state; String get zip; String? get logoUrl; String get joinCode; String get primaryColor;
 /// Create a copy of CommunitySummary
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $CommunitySummaryCopyWith<CommunitySummary> get copyWith => _$CommunitySummaryCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CommunitySummary&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.city, city) || other.city == city)&&(identical(other.logoUrl, logoUrl) || other.logoUrl == logoUrl)&&(identical(other.joinCode, joinCode) || other.joinCode == joinCode)&&(identical(other.primaryColor, primaryColor) || other.primaryColor == primaryColor));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CommunitySummary&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.street, street) || other.street == street)&&(identical(other.city, city) || other.city == city)&&(identical(other.state, state) || other.state == state)&&(identical(other.zip, zip) || other.zip == zip)&&(identical(other.logoUrl, logoUrl) || other.logoUrl == logoUrl)&&(identical(other.joinCode, joinCode) || other.joinCode == joinCode)&&(identical(other.primaryColor, primaryColor) || other.primaryColor == primaryColor));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,city,logoUrl,joinCode,primaryColor);
+int get hashCode => Object.hash(runtimeType,id,name,street,city,state,zip,logoUrl,joinCode,primaryColor);
 
 @override
 String toString() {
-  return 'CommunitySummary(id: $id, name: $name, city: $city, logoUrl: $logoUrl, joinCode: $joinCode, primaryColor: $primaryColor)';
+  return 'CommunitySummary(id: $id, name: $name, street: $street, city: $city, state: $state, zip: $zip, logoUrl: $logoUrl, joinCode: $joinCode, primaryColor: $primaryColor)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $CommunitySummaryCopyWith<$Res>  {
   factory $CommunitySummaryCopyWith(CommunitySummary value, $Res Function(CommunitySummary) _then) = _$CommunitySummaryCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String city, String? logoUrl, String joinCode, String primaryColor
+ String id, String name, String street, String city, String state, String zip, String? logoUrl, String joinCode, String primaryColor
 });
 
 
@@ -65,11 +65,14 @@ class _$CommunitySummaryCopyWithImpl<$Res>
 
 /// Create a copy of CommunitySummary
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? city = null,Object? logoUrl = freezed,Object? joinCode = null,Object? primaryColor = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? street = null,Object? city = null,Object? state = null,Object? zip = null,Object? logoUrl = freezed,Object? joinCode = null,Object? primaryColor = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,street: null == street ? _self.street : street // ignore: cast_nullable_to_non_nullable
 as String,city: null == city ? _self.city : city // ignore: cast_nullable_to_non_nullable
+as String,state: null == state ? _self.state : state // ignore: cast_nullable_to_non_nullable
+as String,zip: null == zip ? _self.zip : zip // ignore: cast_nullable_to_non_nullable
 as String,logoUrl: freezed == logoUrl ? _self.logoUrl : logoUrl // ignore: cast_nullable_to_non_nullable
 as String?,joinCode: null == joinCode ? _self.joinCode : joinCode // ignore: cast_nullable_to_non_nullable
 as String,primaryColor: null == primaryColor ? _self.primaryColor : primaryColor // ignore: cast_nullable_to_non_nullable
@@ -158,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String city,  String? logoUrl,  String joinCode,  String primaryColor)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String street,  String city,  String state,  String zip,  String? logoUrl,  String joinCode,  String primaryColor)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CommunitySummary() when $default != null:
-return $default(_that.id,_that.name,_that.city,_that.logoUrl,_that.joinCode,_that.primaryColor);case _:
+return $default(_that.id,_that.name,_that.street,_that.city,_that.state,_that.zip,_that.logoUrl,_that.joinCode,_that.primaryColor);case _:
   return orElse();
 
 }
@@ -179,10 +182,10 @@ return $default(_that.id,_that.name,_that.city,_that.logoUrl,_that.joinCode,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String city,  String? logoUrl,  String joinCode,  String primaryColor)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String street,  String city,  String state,  String zip,  String? logoUrl,  String joinCode,  String primaryColor)  $default,) {final _that = this;
 switch (_that) {
 case _CommunitySummary():
-return $default(_that.id,_that.name,_that.city,_that.logoUrl,_that.joinCode,_that.primaryColor);case _:
+return $default(_that.id,_that.name,_that.street,_that.city,_that.state,_that.zip,_that.logoUrl,_that.joinCode,_that.primaryColor);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +202,10 @@ return $default(_that.id,_that.name,_that.city,_that.logoUrl,_that.joinCode,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String city,  String? logoUrl,  String joinCode,  String primaryColor)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String street,  String city,  String state,  String zip,  String? logoUrl,  String joinCode,  String primaryColor)?  $default,) {final _that = this;
 switch (_that) {
 case _CommunitySummary() when $default != null:
-return $default(_that.id,_that.name,_that.city,_that.logoUrl,_that.joinCode,_that.primaryColor);case _:
+return $default(_that.id,_that.name,_that.street,_that.city,_that.state,_that.zip,_that.logoUrl,_that.joinCode,_that.primaryColor);case _:
   return null;
 
 }
@@ -214,12 +217,15 @@ return $default(_that.id,_that.name,_that.city,_that.logoUrl,_that.joinCode,_tha
 @JsonSerializable()
 
 class _CommunitySummary implements CommunitySummary {
-  const _CommunitySummary({required this.id, required this.name, this.city = '', this.logoUrl, this.joinCode = '', this.primaryColor = '#5B8DEF'});
+  const _CommunitySummary({required this.id, required this.name, this.street = '', this.city = '', this.state = '', this.zip = '', this.logoUrl, this.joinCode = '', this.primaryColor = '#5B8DEF'});
   factory _CommunitySummary.fromJson(Map<String, dynamic> json) => _$CommunitySummaryFromJson(json);
 
 @override final  String id;
 @override final  String name;
+@override@JsonKey() final  String street;
 @override@JsonKey() final  String city;
+@override@JsonKey() final  String state;
+@override@JsonKey() final  String zip;
 @override final  String? logoUrl;
 @override@JsonKey() final  String joinCode;
 @override@JsonKey() final  String primaryColor;
@@ -237,16 +243,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CommunitySummary&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.city, city) || other.city == city)&&(identical(other.logoUrl, logoUrl) || other.logoUrl == logoUrl)&&(identical(other.joinCode, joinCode) || other.joinCode == joinCode)&&(identical(other.primaryColor, primaryColor) || other.primaryColor == primaryColor));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CommunitySummary&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.street, street) || other.street == street)&&(identical(other.city, city) || other.city == city)&&(identical(other.state, state) || other.state == state)&&(identical(other.zip, zip) || other.zip == zip)&&(identical(other.logoUrl, logoUrl) || other.logoUrl == logoUrl)&&(identical(other.joinCode, joinCode) || other.joinCode == joinCode)&&(identical(other.primaryColor, primaryColor) || other.primaryColor == primaryColor));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,city,logoUrl,joinCode,primaryColor);
+int get hashCode => Object.hash(runtimeType,id,name,street,city,state,zip,logoUrl,joinCode,primaryColor);
 
 @override
 String toString() {
-  return 'CommunitySummary(id: $id, name: $name, city: $city, logoUrl: $logoUrl, joinCode: $joinCode, primaryColor: $primaryColor)';
+  return 'CommunitySummary(id: $id, name: $name, street: $street, city: $city, state: $state, zip: $zip, logoUrl: $logoUrl, joinCode: $joinCode, primaryColor: $primaryColor)';
 }
 
 
@@ -257,7 +263,7 @@ abstract mixin class _$CommunitySummaryCopyWith<$Res> implements $CommunitySumma
   factory _$CommunitySummaryCopyWith(_CommunitySummary value, $Res Function(_CommunitySummary) _then) = __$CommunitySummaryCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String city, String? logoUrl, String joinCode, String primaryColor
+ String id, String name, String street, String city, String state, String zip, String? logoUrl, String joinCode, String primaryColor
 });
 
 
@@ -274,11 +280,14 @@ class __$CommunitySummaryCopyWithImpl<$Res>
 
 /// Create a copy of CommunitySummary
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? city = null,Object? logoUrl = freezed,Object? joinCode = null,Object? primaryColor = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? street = null,Object? city = null,Object? state = null,Object? zip = null,Object? logoUrl = freezed,Object? joinCode = null,Object? primaryColor = null,}) {
   return _then(_CommunitySummary(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,street: null == street ? _self.street : street // ignore: cast_nullable_to_non_nullable
 as String,city: null == city ? _self.city : city // ignore: cast_nullable_to_non_nullable
+as String,state: null == state ? _self.state : state // ignore: cast_nullable_to_non_nullable
+as String,zip: null == zip ? _self.zip : zip // ignore: cast_nullable_to_non_nullable
 as String,logoUrl: freezed == logoUrl ? _self.logoUrl : logoUrl // ignore: cast_nullable_to_non_nullable
 as String?,joinCode: null == joinCode ? _self.joinCode : joinCode // ignore: cast_nullable_to_non_nullable
 as String,primaryColor: null == primaryColor ? _self.primaryColor : primaryColor // ignore: cast_nullable_to_non_nullable

@@ -294,13 +294,19 @@ class _NotConfigured extends StatelessWidget {
             Icon(
               Icons.apartment_outlined,
               size: 48,
-              color: Colors.white.withValues(alpha: 0.4),
+              color: Colors.white.withValues(alpha: 0.45),
             ),
             const SizedBox(height: 16),
             const Text(
-              'Resident portal not configured',
+              'Coming Soon',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Your community's resident portal will be available here soon.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
             ),
           ],
         ),

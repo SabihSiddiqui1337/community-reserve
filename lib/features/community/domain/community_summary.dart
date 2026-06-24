@@ -11,7 +11,10 @@ abstract class CommunitySummary with _$CommunitySummary {
   const factory CommunitySummary({
     required String id,
     required String name,
+    @Default('') String street,
     @Default('') String city,
+    @Default('') String state,
+    @Default('') String zip,
     String? logoUrl,
     @Default('') String joinCode,
     @Default('#5B8DEF') String primaryColor,

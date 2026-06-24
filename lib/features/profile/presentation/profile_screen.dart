@@ -19,6 +19,7 @@ class ProfileScreen extends ConsumerWidget {
     final membership = ref.watch(currentMembershipProvider);
     final community = ref.watch(activeCommunityProvider);
     final isAdmin = ref.watch(isAdminProvider);
+    final isOwner = ref.watch(isOwnerProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -91,9 +92,11 @@ class ProfileScreen extends ConsumerWidget {
             Card(
               margin: EdgeInsets.zero,
               child: ListTile(
-                leading: const Icon(Icons.shield_outlined),
-                title: const Text('Admin',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
+                leading: Icon(isOwner
+                    ? Icons.workspace_premium_outlined
+                    : Icons.shield_outlined),
+                title: Text(isOwner ? 'Owner' : 'Admin',
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.go(Routes.admin),
               ),

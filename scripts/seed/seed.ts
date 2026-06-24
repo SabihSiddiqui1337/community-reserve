@@ -232,6 +232,24 @@ async function main(): Promise<void> {
     ],
   });
 
+  // Platform owner — global superAdmin. Can add communities and switch into any
+  // of them. Seeded as a verified admin of Maple Grove so onboarding lands in
+  // the app.
+  await ensureUser("owner-uid", "owner@amenry.test", "Olivia Owner", "superAdmin");
+  await db.doc("communities/demo-hoa/memberships/owner-uid").set({
+    userId: "owner-uid",
+    role: "admin",
+    residencyStatus: "verified",
+    unit: "A-1",
+    address: "100 Maplewood Dr, Austin TX 78701",
+    verificationDocUrl: null,
+    reviewedBy: null,
+    reviewedAt: null,
+    rejectionReason: null,
+    noShowCount: 0,
+    bannedUntil: null,
+  });
+
   // Demo announcements for Maple Grove's Events tab.
   const ann = db.collection("communities/demo-hoa/announcements");
   const existingAnn = await ann.get();

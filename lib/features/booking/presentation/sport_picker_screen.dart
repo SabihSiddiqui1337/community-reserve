@@ -57,15 +57,48 @@ class SportPickerScreen extends ConsumerWidget {
                 Text('Choose what you’d like to reserve',
                     style: theme.textTheme.bodyMedium),
                 const SizedBox(height: 20),
-                for (var i = 0; i < sorted.length; i++)
-                  _SportCard(amenity: sorted[i])
-                      .animate()
-                      .fadeIn(delay: (i * 70).ms)
-                      .slideY(begin: 0.1),
+                if (sorted.isEmpty)
+                  const _NoFacilities()
+                else
+                  for (var i = 0; i < sorted.length; i++)
+                    _SportCard(amenity: sorted[i])
+                        .animate()
+                        .fadeIn(delay: (i * 70).ms)
+                        .slideY(begin: 0.1),
               ],
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+/// Shown on the Book tab when the community has no amenities configured yet.
+class _NoFacilities extends StatelessWidget {
+  const _NoFacilities();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 72),
+      child: Column(
+        children: [
+          Icon(Icons.sports_tennis_outlined,
+              size: 56, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(height: 16),
+          const Text('Facilities Coming Soon',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Text(
+            "This community's facilities will appear here once they're added.",
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ],
       ),
     );
   }
