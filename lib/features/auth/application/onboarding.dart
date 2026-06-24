@@ -25,11 +25,16 @@ final onboardingStageProvider = Provider<OnboardingStage>((ref) {
   final user = auth.value ?? ref.read(authRepositoryProvider).currentUser;
   if (user == null) return OnboardingStage.signedOut;
 
-  final memberships = ref.watch(userMembershipsProvider);
-  if (memberships.isLoading && !memberships.hasValue) {
+  // On sign-in the membership stream re-queries for the new user. Until it has
+  // emitted data tagged with THIS user's uid, treat it as loading — otherwise a
+  // stale signed-out empty list (or the prior user's) would route to "find your
+  // community" for a split second. Tagging by uid is race-proof regardless of
+  // Riverpod's sibling update ordering.
+  final data = ref.watch(userMembershipsProvider).value;
+  if (data == null || data.uid != user.uid) {
     return OnboardingStage.loading;
   }
-  final list = memberships.value ?? const [];
+  final list = data.records;
   if (list.isEmpty) return OnboardingStage.needsCommunity;
 
   final m = list.first.membership;

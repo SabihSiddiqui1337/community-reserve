@@ -7,11 +7,26 @@ import '../data/membership_repository.dart';
 import '../domain/community.dart';
 import '../domain/membership.dart';
 
-/// All communities the signed-in user belongs to. Empty until they join.
-final userMembershipsProvider = StreamProvider<List<MembershipRecord>>((ref) {
+/// The signed-in user's memberships, **tagged with the uid they were loaded
+/// for**. The tag lets onboarding tell "still loading for the user who just
+/// signed in" apart from a stale empty list left over from the signed-out state
+/// — without it, sign-in briefly routes to "find your community".
+typedef UserMemberships = ({String uid, List<MembershipRecord> records});
+
+final userMembershipsProvider = StreamProvider<UserMemberships>((ref) {
   final uid = ref.watch(currentUidProvider);
-  if (uid == null) return Stream.value(const []);
-  return ref.watch(membershipRepositoryProvider).watchUserMemberships(uid);
+  if (uid == null) {
+    return Stream.value((uid: '', records: const <MembershipRecord>[]));
+  }
+  return ref
+      .watch(membershipRepositoryProvider)
+      .watchUserMemberships(uid)
+      .map((records) => (uid: uid, records: records));
+});
+
+/// Just the membership records for the active user (used by the providers below).
+final _membershipListProvider = Provider<List<MembershipRecord>>((ref) {
+  return ref.watch(userMembershipsProvider).value?.records ?? const [];
 });
 
 /// True for the platform owner (global superAdmin) — can add communities and
@@ -40,13 +55,13 @@ final currentCommunityIdProvider = Provider<String?>((ref) {
     final override = ref.watch(communityOverrideProvider);
     if (override != null) return override;
   }
-  final list = ref.watch(userMembershipsProvider).value ?? const [];
+  final list = ref.watch(_membershipListProvider);
   return list.isEmpty ? null : list.first.communityId;
 });
 
 /// The signed-in user's membership in the active community (role/residency).
 final currentMembershipProvider = Provider<Membership?>((ref) {
-  final list = ref.watch(userMembershipsProvider).value ?? const [];
+  final list = ref.watch(_membershipListProvider);
   return list.isEmpty ? null : list.first.membership;
 });
 
