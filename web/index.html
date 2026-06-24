@@ -18,6 +18,10 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <!-- viewport-fit=cover lets the app use the full screen incl. safe areas, and
+       is required for the bottom nav to reach the true bottom on mobile. -->
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="description" content="Amenry - community amenity reservations">
 
   <!-- iOS meta tags & icons -->
@@ -36,8 +40,11 @@
        the window; it covers the app's bottom navigation. Hide it for the demo.
        (Remove when pointing at a real backend.) */
     .firebase-emulator-warning { display: none !important; }
-    /* Ensure the Flutter view fills the window exactly (no stray scroll). */
-    html, body { height: 100%; margin: 0; overflow: hidden; }
+    /* Ensure the Flutter view fills the window exactly (no stray scroll).
+       100dvh = the DYNAMIC viewport height: it tracks mobile-browser chrome
+       (the URL bar collapsing on scroll), so the bottom nav always sits on the
+       true bottom. 100vh is the fallback for browsers without dvh support. */
+    html, body { margin: 0; overflow: hidden; height: 100vh; height: 100dvh; }
   </style>
 </head>
 <body>
@@ -96,20 +103,27 @@
     })();
   </script>
   <!--
-    DEBUG ONLY: force Flutter to re-measure the window after boot so the app
-    always fits the current viewport on first load (otherwise the bottom nav can
-    sit just below the fold until the first manual window resize). Fires a few
-    synthetic resize events. REMOVE this block for the production app build.
+    Keep Flutter's layout in sync with the LIVE viewport. On mobile browsers the
+    URL bar / toolbar shows and hides as you scroll, changing the visible height;
+    we forward those changes (via the Visual Viewport API) as resize events so
+    Flutter re-measures and the bottom nav always tracks the true bottom. The
+    timed nudges cover the very first paint before listeners are wired.
   -->
   <script>
     (function () {
       function nudge() {
         try { window.dispatchEvent(new Event('resize')); } catch (e) {}
       }
-      [400, 1000, 2000, 3500, 5000].forEach(function (t) {
-        setTimeout(nudge, t);
+      var vv = window.visualViewport;
+      if (vv) {
+        vv.addEventListener('resize', nudge);
+        vv.addEventListener('scroll', nudge);
+      }
+      window.addEventListener('orientationchange', function () {
+        setTimeout(nudge, 100);
       });
       window.addEventListener('load', function () { setTimeout(nudge, 200); });
+      [300, 1000, 2500].forEach(function (t) { setTimeout(nudge, t); });
     })();
   </script>
 </body>
