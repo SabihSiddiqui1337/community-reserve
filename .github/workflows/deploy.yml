@@ -1,15 +1,34 @@
 name: Deploy to Firebase Hosting (live)
 
 # Auto-deploy the web app to https://amenry-prod.web.app on every push to `main`.
-# Needs repo secret FIREBASE_SERVICE_ACCOUNT_AMENRY_PROD (created by
-# `firebase init hosting:github` — see GO-LIVE.md).
+# Until the repo secret FIREBASE_SERVICE_ACCOUNT_AMENRY_PROD exists (created by
+# `firebase init hosting:github`), the deploy job is SKIPPED (so pushes don't
+# show a failed run) — it activates automatically once the secret is added.
 on:
   push:
     branches: [main]
-  workflow_dispatch: {}        # lets you trigger a deploy manually from the Actions tab
+  workflow_dispatch: {}
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - id: check
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_AMENRY_PROD }}
+        run: |
+          if [ -n "$SA" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Deploy key not set yet — skipping deploy. Run 'firebase init hosting:github' to enable auto-deploy."
+          fi
+
   deploy:
+    needs: gate
+    if: needs.gate.outputs.ready == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
