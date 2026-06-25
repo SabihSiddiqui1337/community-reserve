@@ -36,8 +36,7 @@ class CommunityRepository {
       'name': name,
       'address': _composeAddress(address, city, state, zip),
       'timezone': timezone,
-      'residentPortalUrl':
-          (residentPortalUrl?.trim().isEmpty ?? true) ? null : residentPortalUrl!.trim(),
+      'residentPortalUrl': _normalizePortalUrl(residentPortalUrl),
       'branding': {
         'logoUrl': null,
         'primaryColor': '#FFFFFF',
@@ -74,6 +73,16 @@ class CommunityRepository {
     });
     await batch.commit();
     return id;
+  }
+
+  /// Stores an absolute URL — adds `https://` when the user omits the scheme
+  /// (e.g. "youtube.com") — or null when blank, so the HOA portal opens the
+  /// real site instead of a path inside this app.
+  static String? _normalizePortalUrl(String? url) {
+    final u = url?.trim() ?? '';
+    if (u.isEmpty) return null;
+    if (u.startsWith('http://') || u.startsWith('https://')) return u;
+    return 'https://$u';
   }
 
   /// Builds a single-line address from its parts, skipping any that are blank:
@@ -129,9 +138,7 @@ class CommunityRepository {
         {
           'name': name,
           'address': _composeAddress(address, city, state, zip),
-          'residentPortalUrl': (residentPortalUrl?.trim().isEmpty ?? true)
-              ? null
-              : residentPortalUrl!.trim(),
+          'residentPortalUrl': _normalizePortalUrl(residentPortalUrl),
         },
         SetOptions(merge: true));
     batch.set(

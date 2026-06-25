@@ -62,7 +62,11 @@ class _HoaPortalScreenState extends ConsumerState<HoaPortalScreen> {
 
   String? get _portalUrl {
     final raw = ref.read(activeCommunityProvider).residentPortalUrl?.trim();
-    return (raw == null || raw.isEmpty) ? null : raw;
+    if (raw == null || raw.isEmpty) return null;
+    // Ensure an absolute URL (with scheme) so it opens the real site instead of
+    // being treated as a path inside this app — e.g. "Youtube.com" → load it.
+    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+    return 'https://$raw';
   }
 
   Future<void> _logoutOfPortal() async {
@@ -112,11 +116,9 @@ class _HoaPortalScreenState extends ConsumerState<HoaPortalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final community = ref.watch(activeCommunityProvider);
+    // Watch so the screen rebuilds if the portal URL changes.
+    ref.watch(activeCommunityProvider);
     final url = _portalUrl;
-    final portalTitle = community.name.isNotEmpty
-        ? '${community.name} Portal'
-        : 'Resident Portal';
 
     return PopScope(
       canPop: false,
@@ -134,10 +136,8 @@ class _HoaPortalScreenState extends ConsumerState<HoaPortalScreen> {
       child: Scaffold(
         appBar: AppBar(
           actions: [
-            // The overflow menu (Log out of portal / Open in browser) only
-            // applies to the embedded WebView, which runs on native. On web the
-            // fallback screen has its own "Open Portal" button, so hide it.
-            if (url != null && !kIsWeb)
+            // Overflow menu: Log out of portal / Open in browser.
+            if (url != null)
               PopupMenuButton<String>(
                 color: AppTheme.surface1,
                 icon: const Icon(Icons.more_vert),
@@ -164,13 +164,10 @@ class _HoaPortalScreenState extends ConsumerState<HoaPortalScreen> {
         ),
         body: url == null
             ? _NotConfigured()
-            : kIsWeb
-                // On Flutter web the WebView is an <iframe>, and real portals
-                // (ResMan etc.) block embedding via X-Frame-Options — so the
-                // embedded view only works in the native app. On web we offer a
-                // clean "open in a new tab" path instead of a blank frame.
-                ? _WebFallback(title: portalTitle, onOpen: _openInBrowser)
-                : Column(
+            // Embedded webview inside the app on every platform. Some sites
+            // block iframe embedding on web (X-Frame-Options); the AppBar
+            // "Open in browser" menu is the fallback for those.
+            : Column(
                 children: [
                   if (_loading && _progress < 1.0)
                     LinearProgressIndicator(
@@ -307,58 +304,6 @@ class _NotConfigured extends StatelessWidget {
               "Your community's resident portal will be available here soon.",
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Web-only: the embedded WebView can't host most resident portals (iframe
-/// blocking), so we present a friendly launcher that opens the portal in a new
-/// browser tab. The full in-app embedded experience ships on iOS/Android.
-class _WebFallback extends StatelessWidget {
-  const _WebFallback({required this.title, required this.onOpen});
-
-  final String title;
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.apartment_outlined,
-              size: 48,
-              color: Colors.white.withValues(alpha: 0.45),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Pay Rent, View Statements, and Submit Maintenance Requests '
-              "in your Community's Resident Portal.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.35,
-                color: Colors.white.withValues(alpha: 0.6),
-              ),
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: onOpen,
-              icon: const Icon(Icons.open_in_new),
-              label: const Text('Open Resident Portal'),
             ),
           ],
         ),
