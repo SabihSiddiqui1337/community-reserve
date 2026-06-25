@@ -1,92 +1,101 @@
 import 'dart:convert';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:http/http.dart' as http;
 
-/// A single address suggestion returned from the Photon geocoder, flattened
-/// into the fields the residency form needs.
+/// A single address suggestion from the Google Places API (New). Holds just the
+/// place id (to fetch details) and a human-readable label for the dropdown.
 class AddressSuggestion {
-  AddressSuggestion({
-    required this.label,
-    required this.line1,
-    required this.city,
-    required this.state,
-    required this.zip,
-  });
-
+  final String placeId;
   final String label;
-  final String line1;
-  final String city;
-  final String state;
-  final String zip;
+  const AddressSuggestion({required this.placeId, required this.label});
 }
 
-/// Fetches address suggestions from Photon (OpenStreetMap). Free, no API key,
-/// CORS-enabled. Never throws — returns an empty list on any error.
+String get _apiKey => Firebase.app().options.apiKey;
+
+/// Fetches US address suggestions from the Google Places API (New) Autocomplete
+/// endpoint. Never throws — returns an empty list on any error or non-200.
 Future<List<AddressSuggestion>> fetchAddressSuggestions(String query) async {
   final q = query.trim();
   if (q.isEmpty) return [];
   try {
-    final uri = Uri.parse(
-      'https://photon.komoot.io/api/'
-      '?q=${Uri.encodeQueryComponent(q)}&limit=6&lang=en',
+    final res = await http.post(
+      Uri.parse('https://places.googleapis.com/v1/places:autocomplete'),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': _apiKey,
+      },
+      body: json.encode({
+        'input': q,
+        'includedRegionCodes': ['us'],
+      }),
     );
-    final res = await http.get(uri);
     if (res.statusCode != 200) return [];
 
     final decoded = json.decode(res.body) as Map<String, dynamic>;
-    final features = (decoded['features'] as List?) ?? const [];
+    final suggestions = (decoded['suggestions'] as List?) ?? const [];
 
-    final all = <Map<String, dynamic>>[
-      for (final f in features)
-        if (f is Map<String, dynamic> &&
-            f['properties'] is Map<String, dynamic>)
-          f['properties'] as Map<String, dynamic>,
-    ];
-
-    // Prefer US results; if none are US, keep everything.
-    final us = all
-        .where((p) =>
-            (p['countrycode'] as String?)?.toLowerCase() == 'us')
-        .toList();
-    final props = us.isNotEmpty ? us : all;
-
-    final suggestions = <AddressSuggestion>[];
-    for (final p in props) {
-      final s = _toSuggestion(p);
-      if (s.label.isNotEmpty) suggestions.add(s);
+    final out = <AddressSuggestion>[];
+    for (final s in suggestions) {
+      if (s is! Map<String, dynamic>) continue;
+      final pp = s['placePrediction'];
+      if (pp is! Map<String, dynamic>) continue;
+      final placeId = (pp['placeId'] as String?) ?? '';
+      final label = ((pp['text'] as Map<String, dynamic>?)?['text'] as String?)
+              ?.trim() ??
+          '';
+      if (label.isEmpty) continue;
+      out.add(AddressSuggestion(placeId: placeId, label: label));
+      if (out.length >= 6) break;
     }
-    return suggestions;
+    return out;
   } catch (_) {
     return [];
   }
 }
 
-String _str(Object? v) => (v is String) ? v.trim() : '';
+/// Fetches the structured address components for a place id from the Google
+/// Places API (New) Place Details endpoint. Returns null on any error/non-200.
+Future<({String line1, String city, String state, String zip})?>
+    fetchAddressDetails(String placeId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('https://places.googleapis.com/v1/places/$placeId'),
+      headers: {
+        'X-Goog-Api-Key': _apiKey,
+        'X-Goog-FieldMask': 'addressComponents',
+      },
+    );
+    if (res.statusCode != 200) return null;
 
-AddressSuggestion _toSuggestion(Map<String, dynamic> p) {
-  final houseNumber = _str(p['housenumber']);
-  final street = _str(p['street']);
-  var line1 = [houseNumber, street].where((s) => s.isNotEmpty).join(' ').trim();
-  if (line1.isEmpty) line1 = _str(p['name']);
+    final decoded = json.decode(res.body) as Map<String, dynamic>;
+    final components = (decoded['addressComponents'] as List?) ?? const [];
 
-  var city = _str(p['city']);
-  if (city.isEmpty) city = _str(p['district']);
-  if (city.isEmpty) city = _str(p['county']);
+    String long(String type, {bool short = false}) {
+      for (final c in components) {
+        if (c is! Map<String, dynamic>) continue;
+        final types = (c['types'] as List?)?.cast<dynamic>() ?? const [];
+        if (types.contains(type)) {
+          final key = short ? 'shortText' : 'longText';
+          return (c[key] as String?)?.trim() ?? '';
+        }
+      }
+      return '';
+    }
 
-  final state = _str(p['state']);
-  final zip = _str(p['postcode']);
+    final streetNumber = long('street_number');
+    final route = long('route');
+    final line1 = '$streetNumber $route'.trim();
 
-  final label = [
-    line1,
-    city,
-    '$state $zip'.trim(),
-  ].where((s) => s.isNotEmpty).join(', ');
+    var city = long('locality');
+    if (city.isEmpty) city = long('postal_town');
+    if (city.isEmpty) city = long('sublocality');
 
-  return AddressSuggestion(
-    label: label,
-    line1: line1,
-    city: city,
-    state: state,
-    zip: zip,
-  );
+    final state = long('administrative_area_level_1');
+    final zip = long('postal_code');
+
+    return (line1: line1, city: city, state: state, zip: zip);
+  } catch (_) {
+    return null;
+  }
 }

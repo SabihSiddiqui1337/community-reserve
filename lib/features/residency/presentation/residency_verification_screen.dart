@@ -81,12 +81,16 @@ class _ResidencyVerificationScreenState
     });
   }
 
-  void _selectSuggestion(AddressSuggestion s) {
+  Future<void> _selectSuggestion(AddressSuggestion s) async {
+    final d = await fetchAddressDetails(s.placeId);
+    if (!mounted) return;
     setState(() {
-      _line1.text = s.line1;
-      _city.text = s.city;
-      _zip.text = s.zip;
-      if (_usStates.contains(s.state)) _stateValue = s.state;
+      if (d != null) {
+        _line1.text = d.line1;
+        _city.text = d.city;
+        _zip.text = d.zip;
+        if (_usStates.contains(d.state)) _stateValue = d.state;
+      }
       _suggestions = [];
     });
     FocusScope.of(context).unfocus();
@@ -464,7 +468,7 @@ class _AddressSuggestionsPanel extends StatelessWidget {
   const _AddressSuggestionsPanel(
       {required this.suggestions, required this.onSelected});
   final List<AddressSuggestion> suggestions;
-  final ValueChanged<AddressSuggestion> onSelected;
+  final Future<void> Function(AddressSuggestion) onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -486,7 +490,7 @@ class _AddressSuggestionsPanel extends StatelessWidget {
             children: [
               for (final s in items)
                 InkWell(
-                  onTap: () => onSelected(s),
+                  onTap: () => unawaited(onSelected(s)),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 12),
