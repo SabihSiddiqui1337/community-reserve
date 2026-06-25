@@ -41,11 +41,13 @@ class _ResidencyVerificationScreenState
   final _city = TextEditingController();
   final _zip = TextEditingController();
   final _phone = TextEditingController();
+  final _email = TextEditingController();
   String? _stateValue;
   Uint8List? _bytes;
   String? _fileName;
   bool _submitting = false;
   bool _phoneFilled = false;
+  bool _emailFilled = false;
   String? _error;
 
   Timer? _debounce;
@@ -104,6 +106,7 @@ class _ResidencyVerificationScreenState
     _city.dispose();
     _zip.dispose();
     _phone.dispose();
+    _email.dispose();
     super.dispose();
   }
 
@@ -137,10 +140,13 @@ class _ResidencyVerificationScreenState
     setState(() => _submitting = true);
     try {
       final phoneDigits = _phone.text.replaceAll(RegExp(r'\D'), '');
-      if (phoneDigits.isNotEmpty) {
-        await ref
-            .read(userRepositoryProvider)
-            .updateProfile(uid, phone: phoneDigits);
+      final emailVal = _email.text.trim();
+      if (phoneDigits.isNotEmpty || emailVal.isNotEmpty) {
+        await ref.read(userRepositoryProvider).updateProfile(
+              uid,
+              phone: phoneDigits.isNotEmpty ? phoneDigits : null,
+              email: emailVal.isNotEmpty ? emailVal : null,
+            );
       }
       final url = await ref.read(residencyRepositoryProvider).uploadDocument(
             communityId: cid,
@@ -170,6 +176,10 @@ class _ResidencyVerificationScreenState
     if (!_phoneFilled && _phone.text.isEmpty && (user?.phone ?? '').isNotEmpty) {
       _phone.text = formatPhone(user!.phone);
       _phoneFilled = true;
+    }
+    if (!_emailFilled && _email.text.isEmpty && (user?.email ?? '').isNotEmpty) {
+      _email.text = user!.email;
+      _emailFilled = true;
     }
 
     // Submit is enabled only once the address AND a document are provided.
@@ -298,6 +308,15 @@ class _ResidencyVerificationScreenState
                   decoration: const InputDecoration(
                     labelText: 'Phone',
                     prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email_outlined),
                   ),
                 ),
                 const SizedBox(height: 16),
