@@ -116,9 +116,11 @@ class _HoaPortalScreenState extends ConsumerState<HoaPortalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch so the screen rebuilds if the portal URL changes.
-    ref.watch(activeCommunityProvider);
+    final community = ref.watch(activeCommunityProvider);
     final url = _portalUrl;
+    final portalTitle = community.name.isNotEmpty
+        ? '${community.name} Portal'
+        : 'Resident Portal';
 
     return PopScope(
       canPop: false,
@@ -136,8 +138,9 @@ class _HoaPortalScreenState extends ConsumerState<HoaPortalScreen> {
       child: Scaffold(
         appBar: AppBar(
           actions: [
-            // Overflow menu: Log out of portal / Open in browser.
-            if (url != null)
+            // The overflow menu only applies to the embedded WebView (native).
+            // On web the launcher screen has its own "Open Portal" button.
+            if (url != null && !kIsWeb)
               PopupMenuButton<String>(
                 color: AppTheme.surface1,
                 icon: const Icon(Icons.more_vert),
@@ -164,10 +167,13 @@ class _HoaPortalScreenState extends ConsumerState<HoaPortalScreen> {
         ),
         body: url == null
             ? _NotConfigured()
-            // Embedded webview inside the app on every platform. Some sites
-            // block iframe embedding on web (X-Frame-Options); the AppBar
-            // "Open in browser" menu is the fallback for those.
-            : Column(
+            : kIsWeb
+                // Real portals (ResMan, etc.) and many sites block iframe
+                // embedding on web via X-Frame-Options ("refused to connect").
+                // So on web we open the portal in a new browser tab; the full
+                // in-app embedded webview ships on iOS/Android.
+                ? _WebFallback(title: portalTitle, onOpen: _openInBrowser)
+                : Column(
                 children: [
                   if (_loading && _progress < 1.0)
                     LinearProgressIndicator(
@@ -304,6 +310,67 @@ class _NotConfigured extends StatelessWidget {
               "Your community's resident portal will be available here soon.",
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Web-only launcher: most resident portals block iframe embedding on the web
+/// (X-Frame-Options), so instead of a "refused to connect" frame we open the
+/// portal in a new browser tab. The full in-app embedded webview ships on
+/// iOS/Android.
+class _WebFallback extends StatelessWidget {
+  const _WebFallback({required this.title, required this.onOpen});
+
+  final String title;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.apartment_outlined,
+              size: 48,
+              color: Colors.white.withValues(alpha: 0.45),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Pay Rent, View Statements, and Submit Maintenance Requests '
+              "in your community's Resident Portal.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                color: Colors.white.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: onOpen,
+              icon: const Icon(Icons.open_in_new),
+              label: const Text('Open Resident Portal'),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Opens in a new tab',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white.withValues(alpha: 0.45),
+              ),
             ),
           ],
         ),
