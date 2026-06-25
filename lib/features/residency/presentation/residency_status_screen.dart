@@ -8,8 +8,8 @@ import '../../auth/application/auth_controller.dart';
 import '../../community/application/tenant_providers.dart';
 import '../../community/domain/membership.dart';
 
-/// Shown while residency is pending review, or if it was rejected (with a
-/// reason and the option to resubmit).
+/// Shown after a resident submits their document (pending review), or if it was
+/// rejected (with a reason and the option to resubmit).
 class ResidencyStatusScreen extends ConsumerWidget {
   const ResidencyStatusScreen({super.key});
 
@@ -18,94 +18,122 @@ class ResidencyStatusScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final membership = ref.watch(currentMembershipProvider);
     final community = ref.watch(activeCommunityProvider);
-    final rejected =
-        membership?.residencyStatus == ResidencyStatus.rejected;
+    final rejected = membership?.residencyStatus == ResidencyStatus.rejected;
+    final lime = theme.colorScheme.primary;
 
     return Scaffold(
       body: BrandedBackground(
         child: SafeArea(
           child: Center(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
+                constraints: const BoxConstraints(maxWidth: 460),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(
-                      rejected ? Icons.error_outline : Icons.verified_outlined,
-                      size: 64,
-                      color: rejected
-                          ? theme.colorScheme.error
-                          : theme.colorScheme.primary,
+                    // Status badge.
+                    Center(
+                      child: Container(
+                        height: 72,
+                        width: 72,
+                        decoration: BoxDecoration(
+                          color: rejected
+                              ? theme.colorScheme.error.withValues(alpha: 0.15)
+                              : lime.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          rejected ? Icons.close_rounded : Icons.check_rounded,
+                          size: 40,
+                          color: rejected ? theme.colorScheme.error : lime,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 20),
                     Text(
                       rejected
                           ? 'Verification Declined'
-                          : 'Verification In Progress',
-                      style: theme.textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                          : 'Document Uploaded Successfully! 🎉',
                       textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    if (rejected)
-                      Text(
-                        membership?.rejectionReason ??
-                            'Your document could not be verified.',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium,
-                      )
-                    else
-                      // Community name in the lime accent.
-                      Text.rich(
-                        TextSpan(
-                          style: theme.textTheme.bodyMedium,
-                          children: [
-                            const TextSpan(
-                                text:
-                                    'Congratulations! Your document was uploaded. '
-                                    "Verification is in progress — you'll get "
-                                    'access to '),
-                            TextSpan(
-                              text: community.name,
-                              style: TextStyle(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const TextSpan(
-                                text: ' as soon as an admin approves it.'),
-                          ],
-                        ),
-                        textAlign: TextAlign.center,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: rejected ? theme.colorScheme.error : lime,
                       ),
-                    const SizedBox(height: 28),
+                    ),
+                    const SizedBox(height: 24),
+
                     if (rejected) ...[
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: () =>
-                              context.go(Routes.residencyVerification),
-                          child: const Text('Resubmit document'),
+                      _InfoBox(
+                        icon: Icons.error_outline,
+                        title: 'Verification declined',
+                        child: Text(
+                          membership?.rejectionReason ??
+                              'Your document could not be verified. Please '
+                                  'upload a clearer document and resubmit.',
+                          style: theme.textTheme.bodyMedium,
                         ),
+                      ),
+                      const SizedBox(height: 20),
+                      FilledButton(
+                        onPressed: () =>
+                            context.go(Routes.residencyVerification),
+                        child: const Text('Resubmit document'),
                       ),
                       const SizedBox(height: 12),
-                    ],
-                    // Same style as the Sign out button in the More tab.
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFFD33A3F),
-                          foregroundColor: Colors.white,
+                    ] else ...[
+                      // Pending approval explainer.
+                      _InfoBox(
+                        icon: Icons.info_outline,
+                        title: 'Account Pending Approval',
+                        child: Text.rich(
+                          TextSpan(
+                            style: theme.textTheme.bodyMedium,
+                            children: [
+                              const TextSpan(
+                                  text:
+                                      'Your document was uploaded and is now '
+                                      'pending approval from your community '
+                                      'administrator. You’ll get access to '),
+                              TextSpan(
+                                text: community.name,
+                                style: TextStyle(
+                                    color: lime, fontWeight: FontWeight.w700),
+                              ),
+                              const TextSpan(text: ' once approved.'),
+                            ],
+                          ),
                         ),
-                        onPressed: () => ref
-                            .read(authControllerProvider.notifier)
-                            .signOut(),
-                        icon: const Icon(Icons.logout),
-                        label: const Text('Sign out'),
                       ),
+                      const SizedBox(height: 16),
+                      // What's next.
+                      _InfoBox(
+                        icon: Icons.schedule,
+                        title: 'What’s Next?',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            _NextStep(
+                                n: 1,
+                                text:
+                                    'Wait for your community administrator’s approval.'),
+                            SizedBox(height: 10),
+                            _NextStep(
+                                n: 2,
+                                text:
+                                    'Once approved, you can log in to your community.'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                    ],
+
+                    FilledButton.icon(
+                      onPressed: () =>
+                          ref.read(authControllerProvider.notifier).signOut(),
+                      icon: const Icon(Icons.login),
+                      label: const Text('Continue to Login Screen'),
                     ),
                   ],
                 ),
@@ -114,6 +142,81 @@ class ResidencyStatusScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A rounded panel with a lime-tinted leading icon + title and arbitrary body.
+class _InfoBox extends StatelessWidget {
+  const _InfoBox(
+      {required this.icon, required this.title, required this.child});
+  final IconData icon;
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(title,
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+/// A numbered "What's next" step with a lime number chip.
+class _NextStep extends StatelessWidget {
+  const _NextStep({required this.n, required this.text});
+  final int n;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 22,
+          width: 22,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withValues(alpha: 0.18),
+            shape: BoxShape.circle,
+          ),
+          child: Text('$n',
+              style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+            child: Padding(
+          padding: const EdgeInsets.only(top: 1),
+          child: Text(text, style: theme.textTheme.bodyMedium),
+        )),
+      ],
     );
   }
 }

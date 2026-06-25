@@ -12,6 +12,18 @@ import '../../community/data/membership_repository.dart';
 import '../data/document_picker.dart';
 import '../data/residency_repository.dart';
 
+const _usStates = <String>[
+  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado',
+  'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho',
+  'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine',
+  'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi',
+  'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey',
+  'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio',
+  'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina',
+  'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia',
+  'Washington', 'West Virginia', 'Wisconsin', 'Wyoming',
+];
+
 class ResidencyVerificationScreen extends ConsumerStatefulWidget {
   const ResidencyVerificationScreen({super.key});
 
@@ -22,8 +34,12 @@ class ResidencyVerificationScreen extends ConsumerStatefulWidget {
 
 class _ResidencyVerificationScreenState
     extends ConsumerState<ResidencyVerificationScreen> {
-  final _unit = TextEditingController();
+  final _line1 = TextEditingController();
+  final _line2 = TextEditingController();
+  final _city = TextEditingController();
+  final _zip = TextEditingController();
   final _phone = TextEditingController();
+  String? _stateValue;
   Uint8List? _bytes;
   String? _fileName;
   bool _submitting = false;
@@ -33,8 +49,10 @@ class _ResidencyVerificationScreenState
   @override
   void initState() {
     super.initState();
-    // Re-evaluate the Submit button as the address field changes.
-    _unit.addListener(_onChanged);
+    // Re-evaluate the Submit button as the required address fields change.
+    for (final c in [_line1, _city, _zip]) {
+      c.addListener(_onChanged);
+    }
   }
 
   void _onChanged() {
@@ -43,7 +61,10 @@ class _ResidencyVerificationScreenState
 
   @override
   void dispose() {
-    _unit.dispose();
+    _line1.dispose();
+    _line2.dispose();
+    _city.dispose();
+    _zip.dispose();
     _phone.dispose();
     super.dispose();
   }
@@ -63,9 +84,12 @@ class _ResidencyVerificationScreenState
     final cid = ref.read(currentCommunityIdProvider);
     final uid = ref.read(currentUidProvider);
     final bytes = _bytes;
-    final unit = _unit.text.trim();
-    if (unit.isEmpty) {
-      setState(() => _error = 'Please enter your unit, household, or address.');
+    final line1 = _line1.text.trim();
+    final city = _city.text.trim();
+    final st = _stateValue ?? '';
+    final zip = _zip.text.trim();
+    if (line1.isEmpty || city.isEmpty || st.isEmpty || zip.isEmpty) {
+      setState(() => _error = 'Please complete your address.');
       return;
     }
     if (cid == null || uid == null || bytes == null) {
@@ -86,8 +110,9 @@ class _ResidencyVerificationScreenState
             fileName: _fileName ?? 'residency.jpg',
             bytes: bytes,
           );
+      final address = '$line1, $city, $st $zip';
       await ref.read(membershipRepositoryProvider).submitResidency(
-            cid, uid, url, unit: unit);
+            cid, uid, url, unit: _line2.text.trim(), address: address);
       // onboarding stage advances to pendingReview → router redirects.
     } catch (e) {
       if (mounted) setState(() => _error = 'Upload failed. Please try again.');
@@ -109,8 +134,12 @@ class _ResidencyVerificationScreenState
       _phoneFilled = true;
     }
 
-    // Submit is enabled only once an address AND a document are provided.
-    final canSubmit = _unit.text.trim().isNotEmpty && _bytes != null;
+    // Submit is enabled only once the address AND a document are provided.
+    final canSubmit = _line1.text.trim().isNotEmpty &&
+        _city.text.trim().isNotEmpty &&
+        (_stateValue ?? '').isNotEmpty &&
+        _zip.text.trim().isNotEmpty &&
+        _bytes != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -140,12 +169,71 @@ class _ResidencyVerificationScreenState
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Icon(Icons.location_on_outlined,
+                        size: 18, color: theme.colorScheme.primary),
+                    const SizedBox(width: 6),
+                    Text('Address',
+                        style: theme.textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w700)),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 TextField(
-                  controller: _unit,
+                  controller: _line1,
+                  textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                    labelText: 'Unit, household, or address',
+                    labelText: 'Address Line 1',
                     prefixIcon: Icon(Icons.home_outlined),
                   ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _line2,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Address Line 2 (optional)',
+                    hintText: 'Suite, unit, building, etc.',
+                    prefixIcon: Icon(Icons.meeting_room_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _city,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'City',
+                    prefixIcon: Icon(Icons.location_city_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _stateValue,
+                        isExpanded: true,
+                        decoration: const InputDecoration(labelText: 'State'),
+                        items: [
+                          for (final s in _usStates)
+                            DropdownMenuItem(value: s, child: Text(s)),
+                        ],
+                        onChanged: (v) => setState(() => _stateValue = v),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: TextField(
+                        controller: _zip,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'ZIP'),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -172,7 +260,7 @@ class _ResidencyVerificationScreenState
                           width: 18,
                           child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.cloud_upload_outlined),
-                  label: Text(_submitting ? 'Submitting…' : 'Submit for review'),
+                  label: Text(_submitting ? 'Submitting…' : 'Submit for Review'),
                 ),
               ],
             ),

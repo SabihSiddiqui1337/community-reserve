@@ -93,7 +93,7 @@ service cloud.firestore {
               && request.resource.data.role == resource.data.role
               && request.resource.data.residencyStatus == 'pending'
               && request.resource.data.diff(resource.data).affectedKeys()
-                   .hasOnly(['verificationDocUrl', 'unit', 'residencyStatus', 'userId']));
+                   .hasOnly(['verificationDocUrl', 'unit', 'address', 'residencyStatus', 'userId']));
 
         allow delete: if isCommunityAdmin(communityId) || isSuperAdmin();
       }

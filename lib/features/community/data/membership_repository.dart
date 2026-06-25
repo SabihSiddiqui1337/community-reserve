@@ -53,14 +53,16 @@ class MembershipRepository {
     await _col(cid).doc(uid).set(Membership(userId: uid, unit: unit).toJson());
   }
 
-  /// Attach the uploaded residency doc; (re)sets status to pending.
+  /// Attach the uploaded residency doc; (re)sets status to pending. `unit` is
+  /// the suite/unit line; `address` is the composed street/city/state/zip line.
   Future<void> submitResidency(String cid, String uid, String docUrl,
-      {String unit = ''}) {
+      {String unit = '', String address = ''}) {
     return _col(cid).doc(uid).set({
       'userId': uid,
       'verificationDocUrl': docUrl,
       'residencyStatus': ResidencyStatus.pending.name,
       if (unit.isNotEmpty) 'unit': unit,
+      if (address.isNotEmpty) 'address': address,
     }, SetOptions(merge: true));
   }
 

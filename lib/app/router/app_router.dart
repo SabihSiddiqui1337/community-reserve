@@ -22,7 +22,6 @@ import '../../features/booking/presentation/checkout_screen.dart';
 import '../../features/booking/presentation/event_request_screen.dart';
 import '../../features/booking/presentation/slot_screen.dart';
 import '../../features/booking/presentation/sport_picker_screen.dart';
-import '../../features/community/presentation/join_community_screen.dart';
 import '../../features/events/presentation/events_screen.dart';
 import '../../features/hoa/presentation/hoa_portal_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
@@ -56,7 +55,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         Routes.splash,
         Routes.signIn,
         Routes.signUp,
-        Routes.joinCommunity,
         Routes.residencyVerification,
         Routes.residencyStatus,
       };
@@ -79,7 +77,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               ? null
               : Routes.signIn;
         case OnboardingStage.needsCommunity:
-          return loc == Routes.joinCommunity ? null : Routes.joinCommunity;
+          // A community is always chosen during sign-up, so this stage is only a
+          // brief transient while the membership doc is being created. Keep the
+          // user on the auth screen (its button keeps spinning) instead of
+          // flashing a "find your community" page.
+          return (loc == Routes.splash ||
+                  loc == Routes.signIn ||
+                  loc == Routes.signUp ||
+                  loc == Routes.forgotPassword)
+              ? null
+              : Routes.splash;
         case OnboardingStage.needsResidency:
           return loc == Routes.residencyVerification
               ? null
@@ -109,9 +116,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
           path: Routes.forgotPassword,
           builder: (_, _) => const ForgotPasswordScreen()),
-      GoRoute(
-          path: Routes.joinCommunity,
-          builder: (_, _) => const JoinCommunityScreen()),
       GoRoute(
           path: Routes.residencyVerification,
           builder: (_, _) => const ResidencyVerificationScreen()),
