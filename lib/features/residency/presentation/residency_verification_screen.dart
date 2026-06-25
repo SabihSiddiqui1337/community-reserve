@@ -187,6 +187,7 @@ class _ResidencyVerificationScreenState
         _city.text.trim().isNotEmpty &&
         (_stateValue ?? '').isNotEmpty &&
         _zip.text.trim().isNotEmpty &&
+        _email.text.trim().isNotEmpty &&
         _bytes != null;
 
     return Scaffold(
@@ -279,15 +280,20 @@ class _ResidencyVerificationScreenState
                   children: [
                     Expanded(
                       flex: 3,
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _stateValue,
-                        isExpanded: true,
-                        decoration: const InputDecoration(labelText: 'State'),
-                        items: [
+                      // Type to filter the states, then pick one.
+                      child: DropdownMenu<String>(
+                        initialSelection: _stateValue,
+                        enableFilter: true,
+                        requestFocusOnTap: true,
+                        expandedInsets: EdgeInsets.zero,
+                        menuHeight: 280,
+                        label: const Text('State'),
+                        inputDecorationTheme: theme.inputDecorationTheme,
+                        dropdownMenuEntries: [
                           for (final s in _usStates)
-                            DropdownMenuItem(value: s, child: Text(s)),
+                            DropdownMenuEntry(value: s, label: s),
                         ],
-                        onChanged: (v) => setState(() => _stateValue = v),
+                        onSelected: (v) => setState(() => _stateValue = v),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -315,9 +321,20 @@ class _ResidencyVerificationScreenState
                 TextField(
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
+                  onChanged: (_) => setState(() {}),
                   decoration: const InputDecoration(
                     labelText: 'Email',
                     prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Text(
+                    'Double-check your email — we’ll send your approval '
+                    'confirmation here.',
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   ),
                 ),
                 const SizedBox(height: 16),
