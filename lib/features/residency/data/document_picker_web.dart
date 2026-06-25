@@ -2,6 +2,7 @@
 // conditional import in document_picker.dart, and a native <input type="file">
 // is the most reliable way to browse documents on the web.
 // ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
+import 'dart:async';
 import 'dart:html' as html;
 import 'dart:typed_data';
 
@@ -10,11 +11,27 @@ import 'dart:typed_data';
 Future<({Uint8List bytes, String name})?> pickDocument() async {
   final input = html.FileUploadInputElement()
     ..accept = '.pdf,.jpg,.jpeg,.png,.webp,.heic,image/*'
-    ..multiple = false;
+    ..multiple = false
+    // Hidden but present in the DOM — a detached or visible input can fail to
+    // open the picker on some browsers (notably iOS Safari).
+    ..style.position = 'fixed'
+    ..style.left = '-9999px'
+    ..style.opacity = '0';
   // Attach + click within the user gesture so the dialog isn't blocked.
   html.document.body?.append(input);
   input.click();
-  await input.onChange.first;
+
+  // Resolve when a file is chosen; also resolve if the dialog is dismissed
+  // (the window regains focus with no change event) so we never hang forever.
+  final completer = Completer<void>();
+  input.onChange.first.then((_) {
+    if (!completer.isCompleted) completer.complete();
+  });
+  html.window.onFocus.first.then((_) async {
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    if (!completer.isCompleted) completer.complete();
+  });
+  await completer.future;
   input.remove();
 
   final files = input.files;

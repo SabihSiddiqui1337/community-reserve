@@ -96,13 +96,16 @@ class ResidencyStatusScreen extends ConsumerWidget {
                                   text:
                                       'Your document was uploaded and is now '
                                       'pending approval from your community '
-                                      'administrator. You’ll get access to '),
+                                      'administrator. Once approved, you’ll get '
+                                      'access to '),
                               TextSpan(
                                 text: community.name,
                                 style: TextStyle(
                                     color: lime, fontWeight: FontWeight.w700),
                               ),
-                              const TextSpan(text: ' once approved.'),
+                              const TextSpan(
+                                  text:
+                                      ' and receive an email confirmation.'),
                             ],
                           ),
                         ),
@@ -122,6 +125,11 @@ class ResidencyStatusScreen extends ConsumerWidget {
                             SizedBox(height: 10),
                             _NextStep(
                                 n: 2,
+                                text:
+                                    'You’ll receive an email confirmation once approved.'),
+                            SizedBox(height: 10),
+                            _NextStep(
+                                n: 3,
                                 text:
                                     'Once approved, you can log in to your community.'),
                           ],
@@ -169,6 +177,7 @@ class _InfoBox extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 20, color: theme.colorScheme.primary),
               const SizedBox(width: 8),

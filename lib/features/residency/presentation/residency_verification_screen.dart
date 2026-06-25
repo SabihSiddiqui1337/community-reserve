@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import '../../auth/data/auth_repository.dart';
 import '../../auth/data/user_repository.dart';
 import '../../community/application/tenant_providers.dart';
 import '../../community/data/membership_repository.dart';
+import '../data/address_autocomplete.dart';
 import '../data/document_picker.dart';
 import '../data/residency_repository.dart';
 
@@ -46,6 +48,9 @@ class _ResidencyVerificationScreenState
   bool _phoneFilled = false;
   String? _error;
 
+  Timer? _debounce;
+  List<AddressSuggestion> _suggestions = [];
+
   @override
   void initState() {
     super.initState();
@@ -59,8 +64,37 @@ class _ResidencyVerificationScreenState
     if (mounted) setState(() {});
   }
 
+  // Debounced address lookup as the user types in Address Line 1.
+  void _onLine1Changed(String value) {
+    _debounce?.cancel();
+    final query = value.trim();
+    if (query.length < 3) {
+      if (_suggestions.isNotEmpty) setState(() => _suggestions = []);
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 350), () async {
+      final results = await fetchAddressSuggestions(query);
+      if (!mounted) return;
+      // Ignore stale results if the field changed since the request started.
+      if (_line1.text.trim() != query) return;
+      setState(() => _suggestions = results);
+    });
+  }
+
+  void _selectSuggestion(AddressSuggestion s) {
+    setState(() {
+      _line1.text = s.line1;
+      _city.text = s.city;
+      _zip.text = s.zip;
+      if (_usStates.contains(s.state)) _stateValue = s.state;
+      _suggestions = [];
+    });
+    FocusScope.of(context).unfocus();
+  }
+
   @override
   void dispose() {
+    _debounce?.cancel();
     _line1.dispose();
     _line2.dispose();
     _city.dispose();
@@ -183,10 +217,15 @@ class _ResidencyVerificationScreenState
                 TextField(
                   controller: _line1,
                   textInputAction: TextInputAction.next,
+                  onChanged: _onLine1Changed,
                   decoration: const InputDecoration(
                     labelText: 'Address Line 1',
                     prefixIcon: Icon(Icons.home_outlined),
                   ),
+                ),
+                if (_suggestions.isNotEmpty) _AddressSuggestionsPanel(
+                  suggestions: _suggestions,
+                  onSelected: _selectSuggestion,
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -415,6 +454,62 @@ class _UploadBoxState extends State<_UploadBox> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Dropdown panel of address suggestions shown directly below Address Line 1.
+class _AddressSuggestionsPanel extends StatelessWidget {
+  const _AddressSuggestionsPanel(
+      {required this.suggestions, required this.onSelected});
+  final List<AddressSuggestion> suggestions;
+  final ValueChanged<AddressSuggestion> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final items = suggestions.take(6).toList();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Material(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final s in items)
+                InkWell(
+                  onTap: () => onSelected(s),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
+                    child: Row(
+                      children: [
+                        Icon(Icons.location_on_outlined,
+                            size: 18, color: theme.colorScheme.primary),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            s.label,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
