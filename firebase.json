@@ -1,1 +1,56 @@
-{"hosting":{"public":"build/web","ignore":["firebase.json","**/.*","**/node_modules/**"],"rewrites":[{"source":"**","destination":"/index.html"}]},"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"storage":{"rules":"storage.rules"},"functions":[{"source":"functions","codebase":"default","runtime":"nodejs20","predeploy":["npm --prefix \"$RESOURCE_DIR\" run build"]}],"emulators":{"auth":{"host":"0.0.0.0","port":9099},"functions":{"host":"0.0.0.0","port":5001},"firestore":{"host":"0.0.0.0","port":8080},"storage":{"host":"0.0.0.0","port":9199},"ui":{"enabled":true,"host":"0.0.0.0","port":4000},"singleProjectMode":true},"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"amenry-prod","configurations":{"web":"1:844201879560:web:c1bca072edba45f4e989bd"}}}}}}
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [{ "source": "**", "destination": "/index.html" }],
+    "headers": [
+      {
+        "source": "/index.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "source": "**/*.@(dart.js|js)",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs20",
+      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
+    }
+  ],
+  "emulators": {
+    "auth": { "host": "0.0.0.0", "port": 9099 },
+    "functions": { "host": "0.0.0.0", "port": 5001 },
+    "firestore": { "host": "0.0.0.0", "port": 8080 },
+    "storage": { "host": "0.0.0.0", "port": 9199 },
+    "ui": { "enabled": true, "host": "0.0.0.0", "port": 4000 },
+    "singleProjectMode": true
+  },
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "amenry-prod",
+          "configurations": {
+            "web": "1:844201879560:web:c1bca072edba45f4e989bd"
+          }
+        }
+      }
+    }
+  }
+}
