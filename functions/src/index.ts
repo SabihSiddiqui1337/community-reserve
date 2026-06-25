@@ -20,3 +20,6 @@ export { graceSweep } from "./scheduled/graceSweep";
 export { expirySweep } from "./scheduled/expirySweep";
 export { reminders } from "./scheduled/reminders";
 export { banExpiry } from "./scheduled/banExpiry";
+
+// Firestore triggers
+export { onResidencyApproved } from "./triggers/onResidencyApproved";
