@@ -6,13 +6,13 @@ import 'dart:html' as html;
 import 'dart:typed_data';
 
 /// Web: open the OS file browser via a hidden <input type="file"> and return
-/// the selected file's bytes + name. Accepts PDFs and images.
+/// the selected file's bytes + name. Accepts PDFs and images; images are
+/// downscaled + re-encoded as JPEG so uploads are fast (phone photos are
+/// several MB → a few hundred KB).
 Future<({Uint8List bytes, String name})?> pickDocument() async {
   final input = html.FileUploadInputElement()
     ..accept = '.pdf,.jpg,.jpeg,.png,.webp,.heic,image/*'
     ..multiple = false
-    // Hidden but present in the DOM — a detached or visible input can fail to
-    // open the picker on some browsers (notably iOS Safari).
     ..style.position = 'fixed'
     ..style.left = '-9999px'
     ..style.opacity = '0';
@@ -21,8 +21,6 @@ Future<({Uint8List bytes, String name})?> pickDocument() async {
   // user-gesture context (otherwise the dialog is blocked).
   input.click();
 
-  // Wait for a file to be chosen. (If the user dismisses the dialog, no change
-  // event fires; the next tap simply opens a fresh picker.)
   await input.onChange.first;
   input.remove();
 
@@ -34,5 +32,55 @@ Future<({Uint8List bytes, String name})?> pickDocument() async {
   await reader.onLoadEnd.first;
   final result = reader.result;
   if (result is! Uint8List) return null;
+
+  // Compress images to keep the upload quick. PDFs pass through untouched.
+  if (file.type.startsWith('image/')) {
+    final compressed = await _compressImage(result);
+    if (compressed != null) {
+      return (bytes: compressed, name: _withJpgExt(file.name));
+    }
+  }
   return (bytes: result, name: file.name);
+}
+
+/// Downscale to [maxDim] on the longest edge and re-encode as JPEG via a canvas.
+/// Returns null on any failure so the caller falls back to the original bytes.
+Future<Uint8List?> _compressImage(
+  Uint8List bytes, {
+  int maxDim = 1600,
+  num quality = 0.82,
+}) async {
+  String? objectUrl;
+  try {
+    objectUrl = html.Url.createObjectUrlFromBlob(html.Blob([bytes]));
+    final img = html.ImageElement(src: objectUrl);
+    await img.onLoad.first;
+
+    final w = img.naturalWidth;
+    final h = img.naturalHeight;
+    if (w == 0 || h == 0) return null;
+    final longest = w > h ? w : h;
+    final scale = longest > maxDim ? maxDim / longest : 1.0;
+    final tw = (w * scale).round();
+    final th = (h * scale).round();
+
+    final canvas = html.CanvasElement(width: tw, height: th);
+    canvas.context2D.drawImageScaled(img, 0, 0, tw, th);
+
+    final blob = await canvas.toBlob('image/jpeg', quality);
+    final r = html.FileReader()..readAsArrayBuffer(blob);
+    await r.onLoadEnd.first;
+    final out = r.result;
+    return out is Uint8List ? out : null;
+  } catch (_) {
+    return null;
+  } finally {
+    if (objectUrl != null) html.Url.revokeObjectUrl(objectUrl);
+  }
+}
+
+String _withJpgExt(String name) {
+  final dot = name.lastIndexOf('.');
+  final base = dot > 0 ? name.substring(0, dot) : name;
+  return '$base.jpg';
 }

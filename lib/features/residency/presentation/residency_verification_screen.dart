@@ -197,14 +197,26 @@ class _ResidencyVerificationScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('One more step',
+                Text('One More Step',
                     style: theme.textTheme.headlineSmall
                         ?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                Text(
-                  'Add your details and upload a document so ${community.name} '
-                  'can confirm you live in the community.',
-                  style: theme.textTheme.bodyMedium,
+                Text.rich(
+                  TextSpan(
+                    style: theme.textTheme.bodyMedium,
+                    children: [
+                      const TextSpan(
+                          text: 'Add your details and upload a document so '),
+                      TextSpan(
+                        text: community.name,
+                        style: TextStyle(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700),
+                      ),
+                      const TextSpan(
+                          text: ' can confirm you live in the community.'),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Row(

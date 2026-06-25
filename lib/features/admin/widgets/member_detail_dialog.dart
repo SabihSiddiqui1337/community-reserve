@@ -11,6 +11,10 @@ import '../../community/application/tenant_providers.dart';
 import '../../community/data/membership_repository.dart';
 import '../../community/domain/membership.dart';
 
+/// Capitalize the first letter (e.g. "pending" -> "Pending").
+String _cap(String s) =>
+    s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
+
 /// One-shot fetch of the global `users/{uid}` profile for the detail dialog
 /// (name / phone / email join).
 final memberProfileProvider =
@@ -97,7 +101,12 @@ class _MemberDetailDialog extends ConsumerWidget {
         child: Stack(
           alignment: Alignment.topRight,
           children: [
-            ClipRRect(
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(ctx).size.height * 0.8,
+                maxWidth: MediaQuery.of(ctx).size.width * 0.92,
+              ),
+              child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: InteractiveViewer(
                 child: Image.network(
@@ -131,6 +140,7 @@ class _MemberDetailDialog extends ConsumerWidget {
                   ),
                 ),
               ),
+            ),
             ),
             Padding(
               padding: const EdgeInsets.all(8),
@@ -192,7 +202,7 @@ class _MemberDetailDialog extends ConsumerWidget {
       orElse: () => '…',
     );
     final email = profile.maybeWhen(
-      data: (u) => (u?.email ?? '').isNotEmpty ? u!.email : '—',
+      data: (u) => (u?.email ?? '').isNotEmpty ? _cap(u!.email) : '—',
       orElse: () => '…',
     );
     final address =
@@ -225,8 +235,8 @@ class _MemberDetailDialog extends ConsumerWidget {
                 icon: Icons.meeting_room_outlined, label: 'Unit', value: unit),
             _DetailRow(
               icon: Icons.verified_user_outlined,
-              label: 'Residency status',
-              value: membership.residencyStatus.name,
+              label: 'Residency Status',
+              value: _cap(membership.residencyStatus.name),
             ),
             _DocumentRow(
               hasDocument: (membership.verificationDocUrl ?? '').isNotEmpty,
@@ -292,7 +302,7 @@ class _DocumentRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 if (hasDocument) ...[
-                  Text('Document uploaded', style: theme.textTheme.bodyMedium),
+                  Text('Document Uploaded', style: theme.textTheme.bodyMedium),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(

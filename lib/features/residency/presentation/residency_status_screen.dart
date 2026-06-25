@@ -53,14 +53,19 @@ class ResidencyStatusScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    Text(
-                      rejected
-                          ? 'Verification Declined'
-                          : 'Document Uploaded Successfully! 🎉',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: rejected ? theme.colorScheme.error : lime,
+                    // Scale down so the title + emoji always stay on one line.
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        rejected
+                            ? 'Verification Declined'
+                            : 'Document Uploaded Successfully! 🎉',
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: rejected ? theme.colorScheme.error : lime,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
