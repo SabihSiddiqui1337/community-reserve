@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/routes.dart';
+import '../../../../shared/format/contact.dart';
 import '../../../community/application/tenant_providers.dart';
 import '../../../community/domain/membership.dart';
 import '../../widgets/member_detail_dialog.dart';
@@ -44,12 +45,20 @@ class _MemberTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final m = membership;
+    final profile = ref.watch(memberProfileProvider(m.userId));
+    final name = profile.maybeWhen(
+      data: (u) => (u?.name ?? '').isNotEmpty
+          ? u!.name
+          : ((u?.email ?? '').isNotEmpty ? u!.email : 'Member'),
+      orElse: () => '…',
+    );
     return Card(
       child: ListTile(
         onTap: () => showMemberDetailDialog(
           context,
           ref,
           membership: m,
+          showRemove: !m.isAdmin,
         ),
         leading: CircleAvatar(
           backgroundColor: m.isAdmin
@@ -57,12 +66,15 @@ class _MemberTile extends ConsumerWidget {
               : theme.colorScheme.primaryContainer,
           child: Icon(m.isAdmin ? Icons.shield_outlined : Icons.person_outline),
         ),
-        title: Text(m.unit.isNotEmpty ? 'Unit ${m.unit}' : m.userId),
-        subtitle: Text(
-            '${m.role.name} · ${m.residencyStatus.name} · ${m.noShowCount} no-shows'),
-        trailing: m.isBanned
-            ? const Chip(label: Text('Banned'))
-            : null,
+        title: Text(name),
+        subtitle: Text('${titleCase(m.role.name)} · '
+            '${titleCase(m.residencyStatus.name)}'
+            '${m.isBanned ? ' · Banned' : ''}'),
+        trailing: Text(
+          'View Details',
+          style: theme.textTheme.labelLarge
+              ?.copyWith(color: theme.colorScheme.primary),
+        ),
       ),
     );
   }

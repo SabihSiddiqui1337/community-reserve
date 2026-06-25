@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_theme.dart';
+import '../../../core/services/firebase/firebase_providers.dart';
 import '../../../shared/format/contact.dart';
 import '../../../shared/widgets/app_snack.dart';
 import '../../auth/data/auth_repository.dart';
@@ -32,12 +33,14 @@ Future<void> showMemberDetailDialog(
   WidgetRef ref, {
   required Membership membership,
   bool showApproveReject = false,
+  bool showRemove = false,
 }) {
   return showDialog<void>(
     context: context,
     builder: (_) => _MemberDetailDialog(
       membership: membership,
       showApproveReject: showApproveReject,
+      showRemove: showRemove,
     ),
   );
 }
@@ -46,9 +49,11 @@ class _MemberDetailDialog extends ConsumerWidget {
   const _MemberDetailDialog({
     required this.membership,
     required this.showApproveReject,
+    this.showRemove = false,
   });
   final Membership membership;
   final bool showApproveReject;
+  final bool showRemove;
 
   Future<bool> _confirm(BuildContext context, {required bool approve}) async {
     final ok = await showDialog<bool>(
@@ -159,6 +164,94 @@ class _MemberDetailDialog extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _removeMember(BuildContext context, WidgetRef ref) async {
+    const phrase = 'REMOVE MEMBER';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final ctrl = TextEditingController();
+        final theme = Theme.of(ctx);
+        return StatefulBuilder(
+          builder: (ctx, setLocal) {
+            final ok = ctrl.text.trim().toUpperCase() == phrase;
+            return AlertDialog(
+              title: const Text('Remove member?'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                      'This permanently removes the resident from this '
+                      'community and frees their email for future sign-ups. '
+                      "This can't be undone."),
+                  const SizedBox(height: 14),
+                  Text.rich(
+                    TextSpan(
+                      style: theme.textTheme.bodyMedium,
+                      children: const [
+                        TextSpan(text: 'Type '),
+                        TextSpan(
+                            text: phrase,
+                            style: TextStyle(fontWeight: FontWeight.w700)),
+                        TextSpan(text: ' to confirm:'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: ctrl,
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.characters,
+                    onChanged: (_) => setLocal(() {}),
+                    decoration: const InputDecoration(hintText: phrase),
+                  ),
+                ],
+              ),
+              actions: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: theme.colorScheme.error,
+                          foregroundColor: theme.colorScheme.onError,
+                        ),
+                        onPressed:
+                            ok ? () => Navigator.pop(ctx, true) : null,
+                        child: const Text('Remove'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (confirmed != true || !context.mounted) return;
+    final cid = ref.read(currentCommunityIdProvider);
+    if (cid == null) return;
+    try {
+      await ref.read(firebaseFunctionsProvider).httpsCallable('removeMember').call({
+        'communityId': cid,
+        'userId': membership.userId,
+      });
+      if (!context.mounted) return;
+      Navigator.pop(context);
+      showSnack(context, 'Member removed');
+    } catch (_) {
+      if (context.mounted) showError(context, 'Could not remove the member.');
+    }
   }
 
   Future<void> _approve(BuildContext context, WidgetRef ref) async {
@@ -279,7 +372,22 @@ class _MemberDetailDialog extends ConsumerWidget {
                 ],
               ),
             ]
-          : null,
+          : showRemove
+              ? [
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: theme.colorScheme.error,
+                        side: BorderSide(color: theme.colorScheme.error),
+                      ),
+                      onPressed: () => _removeMember(context, ref),
+                      icon: const Icon(Icons.person_remove_outlined, size: 18),
+                      label: const Text('Remove Member'),
+                    ),
+                  ),
+                ]
+              : null,
     );
   }
 }
