@@ -1,11 +1,9 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { defineSecret } from "firebase-functions/params";
 import { getAuth } from "firebase-admin/auth";
 import * as logger from "firebase-functions/logger";
 
 import { db, paths } from "../lib/firebase";
-
-const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
+import { GMAIL_USER, GMAIL_APP_PASSWORD, sendEmail } from "../lib/email";
 
 /**
  * Admin: remove a resident from a community. Deletes the membership; if the user
@@ -13,7 +11,7 @@ const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
  * account so the email becomes reusable. Emails the removed member (best-effort).
  */
 export const removeMember = onCall(
-  { secrets: [RESEND_API_KEY] },
+  { secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] },
   async (request) => {
     const callerUid = request.auth?.uid;
     if (!callerUid) throw new HttpsError("unauthenticated", "Auth required.");
@@ -69,20 +67,11 @@ export const removeMember = onCall(
 
     // Email the removed member (best-effort; never fail the call on email error).
     if (email) {
-      const apiKey = RESEND_API_KEY.value();
-      if (apiKey) {
-        try {
-          const res = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              from: "Amenry <onboarding@resend.dev>",
-              to: [email],
-              subject: `Your access to ${communityName} has ended`,
-              html: `
+      try {
+        await sendEmail({
+          to: email,
+          subject: `Your access to ${communityName} has ended`,
+          html: `
                 <div style="margin:0;padding:24px;background:#f4f5f7;font-family:'Segoe UI',Helvetica,Arial,sans-serif">
                   <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e6e8eb">
                     <div style="background:#15171c;padding:22px 24px;text-align:center">
@@ -102,16 +91,9 @@ export const removeMember = onCall(
                     </div>
                   </div>
                 </div>`,
-            }),
-          });
-          if (!res.ok) {
-            logger.error(
-              `removeMember email: Resend ${res.status} ${await res.text()}`
-            );
-          }
-        } catch (e) {
-          logger.error(`removeMember email failed: ${e}`);
-        }
+        });
+      } catch (e) {
+        logger.error(`removeMember email failed: ${e}`);
       }
     }
 

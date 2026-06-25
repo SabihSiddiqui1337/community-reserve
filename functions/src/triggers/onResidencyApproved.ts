@@ -1,22 +1,17 @@
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
-import { defineSecret } from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
 
 import { db } from "../lib/firebase";
-
-// Set with:  firebase functions:secrets:set RESEND_API_KEY
-const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
+import { GMAIL_USER, GMAIL_APP_PASSWORD, sendEmail } from "../lib/email";
 
 /**
  * Emails a resident when an admin approves their residency (status
- * pending -> verified). Uses Resend (https://resend.com) — a free email API.
- * The "from" address uses Resend's test domain; swap in your own verified
- * domain for production sending to any address.
+ * pending -> verified). Sends via Gmail SMTP so it can reach any address.
  */
 export const onResidencyApproved = onDocumentUpdated(
   {
     document: "communities/{communityId}/memberships/{userId}",
-    secrets: [RESEND_API_KEY],
+    secrets: [GMAIL_USER, GMAIL_APP_PASSWORD],
   },
   async (event) => {
     const before = event.data?.before.data();
@@ -45,21 +40,9 @@ export const onResidencyApproved = onDocumentUpdated(
       logger.warn(`onResidencyApproved: no email for user ${userId}`);
       return;
     }
-    const apiKey = RESEND_API_KEY.value();
-    if (!apiKey) {
-      logger.warn("onResidencyApproved: RESEND_API_KEY not set — skipping email");
-      return;
-    }
-
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Amenry <onboarding@resend.dev>",
-        to: [email],
+    try {
+      await sendEmail({
+        to: email,
         subject: `Welcome to ${communityName} — you're approved! 🎉`,
         html: `
           <div style="margin:0;padding:24px;background:#f4f5f7;font-family:'Segoe UI',Helvetica,Arial,sans-serif">
@@ -99,13 +82,10 @@ export const onResidencyApproved = onDocumentUpdated(
               </div>
             </div>
           </div>`,
-      }),
-    });
-
-    if (!res.ok) {
-      logger.error(`onResidencyApproved: Resend ${res.status} ${await res.text()}`);
-    } else {
+      });
       logger.info(`onResidencyApproved: approval email sent to ${email}`);
+    } catch (e) {
+      logger.error(`onResidencyApproved: email failed: ${e}`);
     }
   }
 );
