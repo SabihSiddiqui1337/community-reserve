@@ -19,10 +19,12 @@ _Membership _$MembershipFromJson(Map<String, dynamic> json) => _Membership(
   address: json['address'] as String? ?? '',
   reviewedBy: json['reviewedBy'] as String?,
   reviewedAt: const TimestampConverter().fromJson(json['reviewedAt']),
+  createdAt: const TimestampConverter().fromJson(json['createdAt']),
   rejectionReason: json['rejectionReason'] as String?,
   noShowCount: (json['noShowCount'] as num?)?.toInt() ?? 0,
   cancellationCount: (json['cancellationCount'] as num?)?.toInt() ?? 0,
   bannedUntil: const TimestampConverter().fromJson(json['bannedUntil']),
+  welcomed: json['welcomed'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$MembershipToJson(_Membership instance) =>
@@ -35,10 +37,12 @@ Map<String, dynamic> _$MembershipToJson(_Membership instance) =>
       'address': instance.address,
       'reviewedBy': instance.reviewedBy,
       'reviewedAt': const TimestampConverter().toJson(instance.reviewedAt),
+      'createdAt': const TimestampConverter().toJson(instance.createdAt),
       'rejectionReason': instance.rejectionReason,
       'noShowCount': instance.noShowCount,
       'cancellationCount': instance.cancellationCount,
       'bannedUntil': const TimestampConverter().toJson(instance.bannedUntil),
+      'welcomed': instance.welcomed,
     };
 
 const _$MemberRoleEnumMap = {

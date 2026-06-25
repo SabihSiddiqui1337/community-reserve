@@ -58,6 +58,7 @@ class _ApprovalTile extends ConsumerWidget {
       data: (u) => (u?.name ?? '').isNotEmpty ? u!.name : membership.userId,
       orElse: () => '…',
     );
+    final community = ref.watch(activeCommunityProvider);
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -77,7 +78,18 @@ class _ApprovalTile extends ConsumerWidget {
                   Icon(Icons.person_outline, color: theme.colorScheme.primary),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(name, style: theme.textTheme.titleMedium),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(name, style: theme.textTheme.titleMedium),
+                        const SizedBox(height: 2),
+                        Text(
+                          community.name,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
                   ),
                   Text(
                     'View Details',

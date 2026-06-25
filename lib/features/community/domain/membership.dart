@@ -23,10 +23,12 @@ abstract class Membership with _$Membership {
     @Default('') String address,
     String? reviewedBy,
     @TimestampConverter() DateTime? reviewedAt,
+    @TimestampConverter() DateTime? createdAt,
     String? rejectionReason,
     @Default(0) int noShowCount,
     @Default(0) int cancellationCount,
     @TimestampConverter() DateTime? bannedUntil,
+    @Default(false) bool welcomed,
   }) = _Membership;
 
   factory Membership.fromJson(Map<String, dynamic> json) =>

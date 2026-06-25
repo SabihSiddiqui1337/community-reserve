@@ -5,18 +5,107 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 
 import '../../../shared/dialogs/confirm.dart';
+import '../../auth/data/auth_repository.dart';
 import '../../auth/data/user_repository.dart';
 import '../../community/application/tenant_providers.dart';
+import '../../community/data/membership_repository.dart';
+import '../../community/domain/membership.dart';
 import '../data/announcement_repository.dart';
 import '../domain/announcement.dart';
 import 'announcement_detail_screen.dart';
 
-class EventsScreen extends ConsumerWidget {
+class EventsScreen extends ConsumerStatefulWidget {
   const EventsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final community = ref.watch(activeCommunityProvider);
+  ConsumerState<EventsScreen> createState() => _EventsScreenState();
+}
+
+class _EventsScreenState extends ConsumerState<EventsScreen> {
+  bool _welcomeChecked = false;
+
+  /// Show a one-time "Welcome to {community}" greeting the first time a verified
+  /// resident lands here, then remember it on their membership.
+  void _maybeShowWelcome() {
+    if (_welcomeChecked) return;
+    final m = ref.read(currentMembershipProvider);
+    final community = ref.read(currentCommunityProvider).value;
+    if (m == null || !m.isVerified || m.welcomed || community == null) return;
+    _welcomeChecked = true;
+    final cid = ref.read(currentCommunityIdProvider);
+    final uid = ref.read(currentUidProvider);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _showWelcomeDialog(community.name);
+      if (cid != null && uid != null) {
+        ref.read(membershipRepositoryProvider).markWelcomed(cid, uid);
+      }
+    });
+  }
+
+  void _showWelcomeDialog(String communityName) {
+    final theme = Theme.of(context);
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              height: 60,
+              width: 60,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.celebration_outlined,
+                  color: theme.colorScheme.primary, size: 30),
+            ),
+            const SizedBox(height: 16),
+            Text.rich(
+              TextSpan(
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
+                children: [
+                  const TextSpan(text: 'Welcome to\n'),
+                  TextSpan(
+                    text: communityName,
+                    style: TextStyle(color: theme.colorScheme.primary),
+                  ),
+                  const TextSpan(text: '!'),
+                ],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "You're all set — book amenities, browse events, and more.",
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Okay'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _maybeShowWelcome();
+    // Use the live community (not the synchronous demo fallback) so the header
+    // doesn't briefly flash a placeholder name before the real one loads.
+    final communityName =
+        ref.watch(currentCommunityProvider).value?.name ?? '';
     final isAdmin = ref.watch(isAdminProvider);
     final announcements = ref.watch(announcementsProvider);
     final theme = Theme.of(context);
@@ -44,10 +133,11 @@ class EventsScreen extends ConsumerWidget {
                               children: [
                                 Text('Welcome to',
                                     style: theme.textTheme.bodyMedium),
-                                Text(community.name,
+                                Text(communityName,
                                     style: theme.textTheme.headlineSmall
                                         ?.copyWith(
-                                            fontWeight: FontWeight.bold)),
+                                            fontWeight: FontWeight.bold,
+                                            color: theme.colorScheme.primary)),
                               ],
                             ),
                           ),
@@ -56,7 +146,7 @@ class EventsScreen extends ConsumerWidget {
                               tooltip: 'Add Event or Announcement',
                               icon: Icon(Icons.add,
                                   color: theme.colorScheme.primary),
-                              onPressed: () => _compose(context, ref),
+                              onPressed: () => _compose(context),
                             ),
                         ],
                       ),
@@ -91,7 +181,7 @@ class EventsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _compose(BuildContext context, WidgetRef ref) async {
+  Future<void> _compose(BuildContext context) async {
     final titleCtl = TextEditingController();
     final bodyCtl = TextEditingController();
     var type = 'announcement';

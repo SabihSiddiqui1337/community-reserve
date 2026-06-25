@@ -50,7 +50,10 @@ class MembershipRepository {
     // doesn't exist yet for a non-member, so the get() would throw and bounce
     // signup back to "find your community". set() on a missing doc is a create,
     // which the rules allow (role=resident, residencyStatus=pending, own uid).
-    await _col(cid).doc(uid).set(Membership(userId: uid, unit: unit).toJson());
+    await _col(cid).doc(uid).set({
+      ...Membership(userId: uid, unit: unit).toJson(),
+      'createdAt': FieldValue.serverTimestamp(),
+    });
   }
 
   /// Attach the uploaded residency doc; (re)sets status to pending. `unit` is
@@ -66,13 +69,23 @@ class MembershipRepository {
     }, SetOptions(merge: true));
   }
 
-  /// Admin: pending residency submissions for review.
+  /// Mark that the resident has seen the one-time welcome dialog.
+  Future<void> markWelcomed(String cid, String uid) =>
+      _col(cid).doc(uid).set({'welcomed': true}, SetOptions(merge: true));
+
+  /// Admin: pending residency submissions for review, newest first.
   Stream<List<Membership>> watchPending(String cid) => _col(cid)
       .where('residencyStatus', isEqualTo: ResidencyStatus.pending.name)
       .snapshots()
-      .map((q) => q.docs
-          .map((d) => Membership.fromJson({...d.data(), 'userId': d.id}))
-          .toList());
+      .map((q) {
+        final list = q.docs
+            .map((d) => Membership.fromJson({...d.data(), 'userId': d.id}))
+            .toList();
+        final epoch = DateTime.fromMillisecondsSinceEpoch(0);
+        list.sort((a, b) =>
+            (b.createdAt ?? epoch).compareTo(a.createdAt ?? epoch));
+        return list;
+      });
 
   Stream<List<Membership>> watchAll(String cid) => _col(cid).snapshots().map(
       (q) => q.docs

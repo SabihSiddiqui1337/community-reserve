@@ -93,7 +93,11 @@ service cloud.firestore {
               && request.resource.data.role == resource.data.role
               && request.resource.data.residencyStatus == 'pending'
               && request.resource.data.diff(resource.data).affectedKeys()
-                   .hasOnly(['verificationDocUrl', 'unit', 'address', 'residencyStatus', 'userId']));
+                   .hasOnly(['verificationDocUrl', 'unit', 'address', 'residencyStatus', 'userId']))
+          // A resident may flip their own one-time "welcomed" flag.
+          || (isSelf(userId)
+              && request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['welcomed']));
 
         allow delete: if isCommunityAdmin(communityId) || isSuperAdmin();
       }

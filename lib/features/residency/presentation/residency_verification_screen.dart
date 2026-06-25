@@ -267,6 +267,7 @@ class _ResidencyVerificationScreenState
                 TextField(
                   controller: _city,
                   textInputAction: TextInputAction.next,
+                  inputFormatters: [TitleCaseInputFormatter()],
                   decoration: const InputDecoration(
                     labelText: 'City',
                     prefixIcon: Icon(Icons.location_city_outlined),

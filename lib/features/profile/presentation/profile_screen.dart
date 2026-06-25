@@ -73,7 +73,7 @@ class ProfileScreen extends ConsumerWidget {
             _Row(label: 'Community', value: community.name),
             _Row(
                 label: 'Address',
-                value: addressTwoLine((membership?.address.isNotEmpty ?? false)
+                value: formatAddress((membership?.address.isNotEmpty ?? false)
                     ? membership!.address
                     : community.address)),
             _Row(

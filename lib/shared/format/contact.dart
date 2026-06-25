@@ -25,10 +25,47 @@ class PhoneInputFormatter extends TextInputFormatter {
   }
 }
 
-/// Splits a one-line address into two display lines at the first comma:
-/// "10810 Roller Mill Ln, Sugar Land TX 77498" →
-///   line 1: "10810 Roller Mill Ln"
-///   line 2: "Sugar Land TX 77498"
+/// Capitalizes the first letter of every word, leaving the rest as-is:
+/// "sugar land" → "Sugar Land".
+String titleCase(String s) =>
+    s.replaceAllMapped(RegExp(r'\b\w'), (m) => m.group(0)!.toUpperCase());
+
+/// Live formatter that title-cases as the user types (e.g. city field).
+class TitleCaseInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    return TextEditingValue(
+      text: titleCase(newValue.text),
+      selection: newValue.selection,
+    );
+  }
+}
+
+/// Formats a stored "line1, city, state zip" address for display: street on the
+/// first line, "City, State" on the second (city title-cased), and the ZIP on
+/// its own line. Falls back gracefully for partial / non-standard addresses.
+String formatAddress(String addr) {
+  final parts =
+      addr.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+  if (parts.isEmpty) return addr.trim();
+  if (parts.length == 1) return parts[0];
+
+  final street = parts[0];
+  final city = titleCase(parts[1]);
+  final stateZip = parts.sublist(2).join(', ').trim();
+
+  final m = RegExp(r'^(.*?)\s+(\d{5}(?:-\d{4})?)$').firstMatch(stateZip);
+  if (m != null) {
+    final state = m.group(1)!.trim();
+    final cityState = state.isNotEmpty ? '$city, $state' : city;
+    return '$street\n$cityState\n${m.group(2)}';
+  }
+  final cityLine = stateZip.isNotEmpty ? '$city, $stateZip' : city;
+  return '$street\n$cityLine';
+}
+
+/// Splits a one-line address into two display lines at the first comma.
 String addressTwoLine(String addr) {
   final i = addr.indexOf(',');
   if (i < 0) return addr.trim();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_theme.dart';
 import '../../../shared/format/contact.dart';
@@ -206,8 +207,11 @@ class _MemberDetailDialog extends ConsumerWidget {
       orElse: () => '…',
     );
     final address =
-        membership.address.isNotEmpty ? addressTwoLine(membership.address) : '—';
+        membership.address.isNotEmpty ? formatAddress(membership.address) : '—';
     final unit = membership.unit.isNotEmpty ? membership.unit : '—';
+    final registered = membership.createdAt != null
+        ? DateFormat('MMM d, yyyy').format(membership.createdAt!.toLocal())
+        : '—';
 
     return AlertDialog(
       title: Row(
@@ -237,6 +241,11 @@ class _MemberDetailDialog extends ConsumerWidget {
               icon: Icons.verified_user_outlined,
               label: 'Residency Status',
               value: _cap(membership.residencyStatus.name),
+            ),
+            _DetailRow(
+              icon: Icons.event_outlined,
+              label: 'Member Registered',
+              value: registered,
             ),
             _DocumentRow(
               hasDocument: (membership.verificationDocUrl ?? '').isNotEmpty,
