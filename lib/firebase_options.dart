@@ -26,10 +26,7 @@ class DefaultFirebaseOptions {
           'you can reconfigure this by running the FlutterFire CLI again.',
         );
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -51,6 +48,21 @@ class DefaultFirebaseOptions {
         );
     }
   }
+
+  // NOTE: hand-written from the web config (no iOS app is registered in the
+  // Firebase console yet). Auth/Firestore/Functions/Storage key off
+  // apiKey/projectId, so this works; replace by running
+  // `firebase login && flutterfire configure` to register a real iOS app.
+  // The appId must be `:ios:`-format — FirebaseCore hard-crashes on a
+  // platform-mismatched GOOGLE_APP_ID.
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyDPWUSWGhusedmZ91wFKRgcgo1z0qwdD-I',
+    appId: '1:844201879560:ios:c1bca072edba45f4e989bd',
+    messagingSenderId: '844201879560',
+    projectId: 'amenry-prod',
+    storageBucket: 'amenry-prod.firebasestorage.app',
+    iosBundleId: 'com.amenry.amenry',
+  );
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyDPWUSWGhusedmZ91wFKRgcgo1z0qwdD-I',
