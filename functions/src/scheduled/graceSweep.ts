@@ -7,9 +7,10 @@ import { notifyWaitlist } from "../lib/notify";
 
 /**
  * Grace sweep — every minute (PROJECT-BRIEF §4.3/§4.4).
- * Reservations still `booked` past startTime + checkInGraceMinutes become
- * `noShow`: the slot frees up, the member's noShowCount increments, and at the
- * threshold they're banned for noShowBanDays.
+ * Reservations still `booked` past max(startTime, createdAt) +
+ * checkInGraceMinutes become `noShow`: the slot frees up, the member's
+ * noShowCount increments, and at the threshold they're banned for
+ * noShowBanDays.
  */
 export const graceSweep = onSchedule("every 1 minutes", async () => {
   const communities = await db.collection("communities").get();
@@ -30,6 +31,11 @@ export const graceSweep = onSchedule("every 1 minutes", async () => {
 
     for (const d of due.docs) {
       const data = d.data();
+      // Late bookings (created mid-slot) get the grace window from creation
+      // time instead — booking the 7:00 slot at 7:44 must not be an instant
+      // no-show.
+      const created = (data.createdAt as Timestamp | undefined)?.toDate();
+      if (created && created > cutoff) continue;
       const userId = data.userId as string;
       await d.ref.update({ status: "noShow" });
 
